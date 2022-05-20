@@ -56,7 +56,7 @@ def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
     object
         http response object
     """
-    global access_token
+    global auth.access_token
     if url[0:4] != "http":
         #Prepend the configured api url
         url = auth.settings["api_audience"] + url
@@ -65,7 +65,7 @@ def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
     headersAPI = {
     'accept': 'application/json',
     'Content-type': 'application/json',
-    'Authorization': prefix + ' ' + access_token if access_token else '',
+    'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
     }
     
     #POST if data provided, otherwise GET
@@ -104,7 +104,7 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
     str
         local filename saved
     """
-    global access_token
+    global auth.access_token
     if url[0:4] != "http":
         #Prepend the configured api url
         url = auth.settings["api_audience"] + url
@@ -113,7 +113,7 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
     headersAPI = {
     'accept': 'application/json',
     'Content-type': 'application/json',
-    'Authorization': prefix + ' ' + access_token if access_token else '',
+    'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
     }
 
     if filename is None:
@@ -222,7 +222,7 @@ def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_
         xhr.open("$METHOD", "$URL");
         xhr.setRequestHeader("Authorization", "$PREFIX $TOKEN");
         //Can also just grab it from window...
-        //xhr.setRequestHeader("Authorization", "$PREFIX " + window.token['access_token']);
+        //xhr.setRequestHeader("Authorization", "$PREFIX " + window.token['auth.access_token']);
         xhr.responseType = 'json';
         xhr.onload = function() {
             // Request finished. Do processing here.
@@ -248,7 +248,7 @@ def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_
     """)
     script = temp_obj.substitute(DATA=json.dumps(data),
                 CODE=code, METHOD=method, URL=url,
-                TOKEN=access_token, PREFIX=prefix, CALLBACK=callback)
+                TOKEN=auth.access_token, PREFIX=prefix, CALLBACK=callback)
     display(HTML(script))
 
 def userinfo():
