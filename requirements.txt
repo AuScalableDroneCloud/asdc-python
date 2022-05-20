@@ -1,0 +1,5 @@
+tqdm
+jupyter-server-proxy
+pillow
+qrcode
+dotenv
