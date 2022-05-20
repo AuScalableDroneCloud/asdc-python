@@ -43,6 +43,15 @@ project = '{PID}'
 task = '{TID}'
 filename = '{ASSET}'
 asdc.download_asset(project, task, filename)
+
+# + inputHidden=false outputHidden=false
+from IPython.display import display
+from PIL import Image
+
+infile = 'orthophoto.tif'
+im = Image.open(infile)
+im.thumbnail((350,350),Image.ANTIALIAS)
+display(im)
 """
 
 import_doc = """
