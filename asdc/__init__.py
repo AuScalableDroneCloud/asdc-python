@@ -106,9 +106,11 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
     str
         local filename saved
     """
+    print(url)
     if url[0:4] != "http":
         #Prepend the configured api url
         url = auth.settings["api_audience"] + url
+    print(url)
 
     #WebODM api call
     headersAPI = {
@@ -143,33 +145,6 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
             print("ERROR, something went wrong")
     return filename
-
-
-    import io
-
-    work = tqdm(frames, leave=True)
-    for f in work:
-        # read the frame
-        Frame = Video.get_frame(f)
-        # convert into bytestream
-        bytestream = Frame.to_bytes()
-        # prepare fields for upload 
-        filename = "still_{:04d}.jpg".format(f)
-        fields = {
-            "images": (
-                filename,
-                bytestream,
-                'images/jpg'
-            )
-        } 
-        res = odm_requests.get_thumbnail(url, token, project_id, task_id, filename=filename)
-        if res.status_code == 200:
-            work.set_description(f"File {filename} already exists on ODM task, skipping...")
-        else:
-            work.set_description(f"Uploading {filename}")
-            # add field to uploads of tasks. In the post below, the actual uploading of one face of one frame is occurring
-            res = odm_requests.post_upload(url, token, project_id, task_id, fields)  
-
 
 def download_asset(project, task, filename):
     """
