@@ -36,22 +36,26 @@ py_base = """# + [markdown] inputHidden=false outputHidden=false
 
 # + inputHidden=false outputHidden=false
 import asdc
+import pathlib
+import os
 
 await asdc.auth.connect(mode='iframe')
 
 project = '{PID}'
 task = '{TID}'
 filename = '{ASSET}'
+pathlib.Path(task).mkdir(parents=True, exist_ok=True)
+os.chdir(task)
 asdc.download_asset(project, task, filename)
 
 # + inputHidden=false outputHidden=false
-from IPython.display import display
-from PIL import Image
+if "orthophoto" in filename:
+    from IPython.display import display
+    from PIL import Image
 
-infile = 'orthophoto.tif'
-im = Image.open(infile)
-im.thumbnail((350,350),Image.ANTIALIAS)
-display(im)
+    im = Image.open(filename)
+    im.thumbnail((350,350),Image.ANTIALIAS)
+    display(im)
 """
 
 import_doc = """
