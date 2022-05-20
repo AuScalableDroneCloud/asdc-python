@@ -18,26 +18,27 @@ def setup_asdc():
     'command': ['python', '-m', 'asdc.server', '{port}', '{base_url}'],
   }
 
-import auth as auth
+import asdc.auth as auth
 
 #Settings should be provided in env variables
-# JUPYTERHUB_URL
-# JUPYTER_OAUTH2_API_AUDIENCE
-# JUPYTER_OAUTH2_CLIENT_ID
-# JUPYTER_OAUTH2_SCOPE
-# JUPYTER_OAUTH2_AUTH_PROVIDER_URL
-
 import os
 # load .env if vars not already in env
 if not "JUPYTER_OAUTH2_CLIENT_ID" in os.environ:
     from dotenv import load_dotenv
     load_dotenv()
 
+#Still not set? Just use some defaults (auth will not work)
+if not "JUPYTER_OAUTH2_CLIENT_ID" in os.environ:
+    os.environ['JUPYTERHUB_URL'] = 'https://jupyter.asdc.cloud.edu.au/user-redirect'
+    os.environ['JUPYTER_OAUTH2_API_AUDIENCE'] = 'https://asdc.cloud.edu.au/api'
+    os.environ['JUPYTER_OAUTH2_CLIENT_ID'] = 'CLIENT_ID_HERE'
+    os.environ['JUPYTER_OAUTH2_SCOPE'] = 'openid profile email'
+    os.environ['JUPYTER_OAUTH2_AUTH_PROVIDER_URL'] = 'https://au-scalable-drone-cloud.au.auth0.com/'
+
 auth.setup()
 
-
 #Utility functions
-def call_api(url, data=None, throw=False, prefix=settings["token_prefix"]):
+def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint
 
@@ -58,7 +59,7 @@ def call_api(url, data=None, throw=False, prefix=settings["token_prefix"]):
     global access_token
     if url[0:4] != "http":
         #Prepend the configured api url
-        url = settings["api_audience"] + url
+        url = auth.settings["api_audience"] + url
 
     #WebODM api call
     headersAPI = {
@@ -83,7 +84,7 @@ def call_api(url, data=None, throw=False, prefix=settings["token_prefix"]):
     #print(r.text)
     return r
 
-def download(url, filename=None, block_size=8192, throw=False, prefix=settings["token_prefix"]):
+def download(url, filename=None, block_size=8192, throw=False, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint to download a file
 
@@ -106,7 +107,7 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=settings["
     global access_token
     if url[0:4] != "http":
         #Prepend the configured api url
-        url = settings["api_audience"] + url
+        url = auth.settings["api_audience"] + url
 
     #WebODM api call
     headersAPI = {
@@ -184,7 +185,7 @@ def download_asset(project, task, filename):
     """
     download('/projects/{PID}/tasks/{TID}/download/{ASSET}'.format(PID=project, TID=task, ASSET=filename))
 
-def call_api_js(url, callback="alert()", data=None, prefix=settings["token_prefix"]):
+def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint from the browser via Javascript, appends a script to the page to 
     do the request.
@@ -259,7 +260,7 @@ def userinfo():
     dict
         json dict containing user info
     """
-    r = call_api(settings["api_authurl"] + '/userinfo') #, prefix='Bearer')
+    r = call_api(auth.settings["api_authurl"] + '/userinfo') #, prefix='Bearer')
     data = r.json()
     return data
 

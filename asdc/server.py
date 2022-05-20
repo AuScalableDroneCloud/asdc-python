@@ -4,7 +4,6 @@ import tornado.httpclient
 import tornado.httputil
 import sys
 import os
-from asdc import custom
 
 root_doc = """
 <!DOCTYPE html>
