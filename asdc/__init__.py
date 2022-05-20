@@ -106,11 +106,9 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
     str
         local filename saved
     """
-    print(url)
     if url[0:4] != "http":
         #Prepend the configured api url
         url = auth.settings["api_audience"] + url
-    print(url)
 
     #WebODM api call
     headersAPI = {
