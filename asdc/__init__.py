@@ -56,7 +56,6 @@ def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
     object
         http response object
     """
-    global auth.access_token
     if url[0:4] != "http":
         #Prepend the configured api url
         url = auth.settings["api_audience"] + url
@@ -104,7 +103,6 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
     str
         local filename saved
     """
-    global auth.access_token
     if url[0:4] != "http":
         #Prepend the configured api url
         url = auth.settings["api_audience"] + url
