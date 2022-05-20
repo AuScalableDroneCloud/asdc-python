@@ -28,8 +28,7 @@ class RootHandler(tornado.web.RequestHandler):
         self.write(root_doc)
 
 
-py_base = """
-# + [markdown] inputHidden=false outputHidden=false
+py_base = """# + [markdown] inputHidden=false outputHidden=false
 # # Loading a data set from ASDC WebODM
 #
 # This notebook / script will load a specific task dataset
@@ -43,8 +42,7 @@ await asdc.auth.connect(mode='iframe')
 project = '{PID}'
 task = '{TID}'
 filename = '{ASSET}'
-asdc.download(project, task, filename)
-
+asdc.download_asset(project, task, filename)
 """
 
 import_doc = """
