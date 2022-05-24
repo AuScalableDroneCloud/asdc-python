@@ -27,22 +27,6 @@ def setup_asdc():
 
 import asdc.auth as auth    #For back compatibility
 from asdc.auth import *     #Also now available in root module
-
-#Settings should be provided in env variables
-import os
-# load .env if vars not already in env
-if not "JUPYTER_OAUTH2_CLIENT_ID" in os.environ:
-    from dotenv import load_dotenv
-    load_dotenv()
-
-#Still not set? Just use some defaults (auth will not work)
-if not "JUPYTER_OAUTH2_CLIENT_ID" in os.environ:
-    os.environ['JUPYTERHUB_URL'] = 'https://jupyter.asdc.cloud.edu.au/user-redirect'
-    os.environ['JUPYTER_OAUTH2_API_AUDIENCE'] = 'https://asdc.cloud.edu.au/api'
-    os.environ['JUPYTER_OAUTH2_CLIENT_ID'] = 'CLIENT_ID_HERE'
-    os.environ['JUPYTER_OAUTH2_SCOPE'] = 'openid profile email'
-    os.environ['JUPYTER_OAUTH2_AUTH_PROVIDER_URL'] = 'https://au-scalable-drone-cloud.au.auth0.com/'
-
 auth.setup()
 
 #Utility functions

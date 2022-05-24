@@ -67,7 +67,7 @@ _server = None     #Server to receive token
 settings = {
     "default_baseurl": 'http://localhost:8888/user-redirect',
     "api_audience": 'https://MYSITE/api',
-    "api_client_id": 'CLIENT_ID_HERE',
+    "api_client_id": '',
     "api_scope": 'openid profile email',
     "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
     #"token_prefix": 'JWT',
@@ -95,6 +95,10 @@ def setup(config=None):
     global settings
     if config is None:
         #Try and load from env variables
+        # load .env first if exists
+        if os.path.exists('.env'):
+            from dotenv import load_dotenv
+            load_dotenv()
         try:
             settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888') + '/user-redirect'
             settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'openid profile email')
