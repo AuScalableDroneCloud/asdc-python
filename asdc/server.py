@@ -240,12 +240,8 @@ THE SOFTWARE.
 
         console.log('done');
 
-        //Close the iframe
-        if (window.parentElement)
-            window.parentElement.removeChild(iframe);
         //Close the popup
-        else
-            window.close();
+        window.close();
     </script>
 </body>
 

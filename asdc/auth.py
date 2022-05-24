@@ -295,6 +295,9 @@ def _listener():
             //Stop listening after sending token
             window.removeEventListener('message', self);
             //window.listenerExists = false;
+
+            //Close iframe if any
+            document.querySelectorAll('.asdc-oauth-frame').forEach(e => e.remove());
         }
     }
     window.addEventListener("message", message_received);
@@ -355,7 +358,7 @@ def _send(mode='popup'):
                 window.open("$URL");
                 html += '(Authentication window may not appear if you have a popup blocker, <a href="$URL" target="_blank" rel="opener">Click here to login</a> instead)';
             } else if (mode == 'iframe') {
-                html = '<iframe src="$URL" style="width: 400px; height: 300px; border: 0;">';
+                html = '<iframe class="asdc-oauth-frame" src="$URL" style="width: 600px; height: 300px; border: 0;">';
             } else if (mode == 'iframe_debug') {
                 html = '<iframe src="$URL" width="400px" height="300px" style="border:1px solid #ccc;">';
             } else if (mode == 'link') {
