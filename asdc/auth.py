@@ -65,7 +65,7 @@ _server = None     #Server to receive token
 
 #Settings, to be provided before use
 settings = {
-    "default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
+    "default_baseurl": 'http://localhost:8888/user-redirect',
     "api_audience": 'https://MYSITE/api',
     "api_client_id": 'CLIENT_ID_HERE',
     "api_scope": 'openid profile email',
@@ -95,13 +95,12 @@ def setup(config=None):
     global settings
     if config is None:
         #Try and load from env variables
-        #(use os.environ dict which throws exception if key not found)
         try:
-            settings["default_baseurl"] = os.environ['JUPYTERHUB_URL'] + '/user-redirect'
-            settings["api_audience"] = os.environ['JUPYTER_OAUTH2_API_AUDIENCE']
-            settings["api_client_id"] = os.environ['JUPYTER_OAUTH2_CLIENT_ID']
+            settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888') + '/user-redirect'
+            settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'openid profile email')
+            settings["api_client_id"] = os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
             settings["api_scope"] = os.getenv('JUPYTER_OAUTH2_SCOPE', settings["api_scope"])
-            settings["api_authurl"] = os.environ['JUPYTER_OAUTH2_AUTH_PROVIDER_URL']
+            settings["api_authurl"] = os.getenv('JUPYTER_OAUTH2_AUTH_PROVIDER_URL', '')
             settings["token_prefix"] = os.getenv('JUPYTER_OAUTH2_PREFIX', settings["token_prefix"])
             settings["provided"] = True
         except Exception as e:

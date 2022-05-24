@@ -10,18 +10,23 @@
 - Functions for moving drone data to and from cloud storage services, S3, CloudStor etc
 
 """
+#See also: https://github.com/localdevices/odk2odm/blob/main/odk2odm/odm_requests.py
 
 import requests
 import json
 import os
 
+# This is the server process launched by installed entrypoint
+# Whenever request is made on (jupyterhub_url)/asdc this server is started
+# if not running, then processes the request
 # https://jupyter-server-proxy.readthedocs.io/en/latest/server-process.html
 def setup_asdc():
   return {
     'command': ['python', '-m', 'asdc.server', '{port}', '{base_url}'],
   }
 
-import asdc.auth as auth
+import asdc.auth as auth    #For back compatibility
+from asdc.auth import *     #Also now available in root module
 
 #Settings should be provided in env variables
 import os
