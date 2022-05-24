@@ -91,7 +91,7 @@ def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
     #print(r.text)
     return r
 
-def download(url, filename=None, block_size=8192, throw=False, prefix=auth.settings["token_prefix"]):
+def download(url, filename=None, block_size=8192, overwrite=False, throw=False, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint to download a file
 
@@ -125,6 +125,10 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
     if filename is None:
         filename = url.split('/')[-1]
 
+    if not overwrite and os.path.exists(filename):
+        print("File exists: " + filename)
+        return filename
+
     #Progress bar
     if auth.is_notebook():
         from tqdm.notebook import tqdm
@@ -149,7 +153,7 @@ def download(url, filename=None, block_size=8192, throw=False, prefix=auth.setti
             print("ERROR, something went wrong")
     return filename
 
-def download_asset(project, task, filename):
+def download_asset(project, task, filename, overwrite=False):
     """
     Call WebODM API endpoint to download an asset file
 
@@ -162,7 +166,7 @@ def download_asset(project, task, filename):
     filename: str
         asset filename to download
     """
-    download('/projects/{PID}/tasks/{TID}/download/{ASSET}'.format(PID=project, TID=task, ASSET=filename))
+    download('/projects/{PID}/tasks/{TID}/download/{ASSET}'.format(PID=project, TID=task, ASSET=filename), overwrite=overwrite)
 
 def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
     """
