@@ -55,6 +55,7 @@ import logging
 import datetime
 import time
 import sys
+from pathlib import Path
 
 baseurl = ''      #Base jupyterhub url
 access_token = '' #Store the received token here
@@ -96,8 +97,11 @@ def setup(config=None):
     if config is None:
         #Try and load from env variables
         # load .env first if exists
+        from dotenv import load_dotenv
+        envhome = str(Path.home() / '.env')
+        if os.path.exists(envhome):
+            load_dotenv(envhome)
         if os.path.exists('.env'):
-            from dotenv import load_dotenv
             load_dotenv()
         try:
             settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888') + '/user-redirect'
@@ -117,47 +121,6 @@ def _check_settings():
     if not settings['provided']:
         print('Please call .setup(dict) to configure before use, defaults are not usable:\n', settings)
         raise(Exception('Settings not provided'))
-
-def get_url():
-    """Attempt to get the Jupyter base url
-
-    This is difficult on the server side without callback from the browser client
-    Needs to be set in env var ideally, can be overridden by settings above
-    """
-    global settings, baseurl
-    _check_settings()
-    import subprocess
-    import json
-    import os
-    
-    #Get from env if set
-    server_url = os.getenv('JUPYTERHUB_URL')
-    if server_url:
-        baseurl = server_url + '/user-redirect'
-    else:
-        result = subprocess.run('jupyter notebook list --json'.split(), stdout=subprocess.PIPE)
-        res = result.stdout.decode().split('\n')
-
-        #Just take the longest path that is above os.getcwd() - not 100% reliable though
-        cwd = os.getcwd()
-        lastlen = 0
-        for r in res:
-            if not len(r): break
-            nbc = json.loads(r)
-            d = nbc["notebook_dir"]
-            if d in cwd and len(d) > lastlen:
-                nbconfig = nbc
-                lastlen = len(d)
-
-        if nbconfig['hostname'] == '0.0.0.0':
-            #Default for ASDC
-            baseurl = settings["default_baseurl"]
-        else:
-            #For localhost
-            baseurl = nbconfig['url']
-            if baseurl[-1] == '/':
-                baseurl = baseurl[0:-1] #Remove trailing /
-    logging.info("Base url: ", baseurl)
 
 async def check_server(url):
     """
@@ -253,7 +216,14 @@ def _listener():
     that processes the oauth2 request
     """
     global settings, baseurl, port, access_token, token_data
-    if not baseurl: get_url()
+    if not baseurl:
+        _check_settings()
+        import os
+        #Get from env
+        server_url = os.getenv('JUPYTERHUB_URL')
+        baseurl = server_url + '/user-redirect'
+        logging.info("Base url: ", baseurl)
+
     from IPython.display import display, HTML
     from string import Template
     temp_obj = Template("""
