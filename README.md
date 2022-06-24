@@ -46,6 +46,7 @@ config = {
     "default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
     "api_audience": 'https://MYSITE/api',
     "api_client_id": 'CLIENT_ID_HERE',
+    "api_device_client_id": 'DEVICE_CLIENT_ID_HERE', #If using device auth flow
     "api_scope": 'openid profile email',
     "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
 }
@@ -85,7 +86,7 @@ import jupyter_oauth2_api as auth
 
 config = {
     "api_audience": 'https://MYSITE/api',
-    "api_client_id": 'CLIENT_ID_HERE',
+    "api_device_client_id": 'DEVICE_CLIENT_ID_HERE'
     "api_scope": 'openid profile email',
     "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
 }

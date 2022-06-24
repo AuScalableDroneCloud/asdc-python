@@ -23,6 +23,7 @@ config = {
     "default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
     "api_audience": 'https://MYSITE/api',
     "api_client_id": 'CLIENT_ID_HERE',
+    "api_device_client_id": 'DEVICE_CLIENT_ID_HERE',
     "api_scope": 'openid profile email',
     "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
 }
@@ -69,6 +70,7 @@ settings = {
     "default_baseurl": 'http://localhost:8888/user-redirect',
     "api_audience": 'https://MYSITE/api',
     "api_client_id": '',
+    "api_device_client_id": '',
     "api_scope": 'openid profile email',
     "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
     #"token_prefix": 'JWT',
@@ -84,6 +86,7 @@ def setup(config=None):
     ... auth.setup({"default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
     ...    "api_audience": 'https://MYSITE/api',
     ...    "api_client_id": 'CLIENT_ID_HERE',
+    ...    "api_device_client_id": 'DEVICE_CLIENT_ID_HERE',
     ...    "api_scope": 'openid profile email',
     ...    "api_authurl": 'MY_OAUTH2_PROVIDER_URL'
      ...   })
@@ -107,6 +110,7 @@ def setup(config=None):
             settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888') + '/user-redirect'
             settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'openid profile email')
             settings["api_client_id"] = os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
+            settings["api_device_client_id"] = os.getenv('JUPYTER_OAUTH2_DEVICE_CLIENT_ID', '')
             settings["api_scope"] = os.getenv('JUPYTER_OAUTH2_SCOPE', settings["api_scope"])
             settings["api_authurl"] = os.getenv('JUPYTER_OAUTH2_AUTH_PROVIDER_URL', '')
             settings["token_prefix"] = os.getenv('JUPYTER_OAUTH2_PREFIX', settings["token_prefix"])
@@ -486,7 +490,7 @@ def device_connect(config=None, qrcode=True, scope=""):
 
     >>> import jupyter_oauth2_api as auth
     ... await auth.connect_device({"api_audience": 'https://MYSITE/api',
-    ...    "api_client_id": 'CLIENT_ID_HERE',
+    ...    "api_device_client_id": 'DEVICE_CLIENT_ID_HERE',
     ...    "api_scope": 'openid profile email',
     ...    "api_authurl": 'MY_OAUTH2_PROVIDER_URL'
     ...   })
@@ -508,6 +512,10 @@ def device_connect(config=None, qrcode=True, scope=""):
         setup(config)
     _check_settings()
 
+    #If no specific device_client_id, assume the client_id is enabled for this flow
+    if len(settings["api_device_client_id"]) == 0:
+        settings["api_device_client_id"] = settings["api_client_id"]
+
     if scope is not None:
         settings["api_scope"] += " " + scope
 
@@ -525,7 +533,7 @@ def device_connect(config=None, qrcode=True, scope=""):
         "content-type": "application/x-www-form-urlencoded",
     }
     data = {
-        "client_id": settings['api_client_id'],
+        "client_id": settings['api_device_client_id'],
         "scope": settings['api_scope'],
         "audience": settings['api_audience']
     }
@@ -534,7 +542,7 @@ def device_connect(config=None, qrcode=True, scope=""):
     response = requests.post(f"{AUTH_DOMAIN}/oauth/device/code", headers=headers, data=data)
     if response.status_code >= 500 or "error" in response.json():
         print(response.json())
-        exit()
+        return
 
     logging.info(response.json())
     user_code = response.json()["user_code"]
@@ -566,7 +574,7 @@ def device_connect(config=None, qrcode=True, scope=""):
     data2 = {
         "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
         "device_code": device_code,
-        "client_id": settings['api_client_id'],
+        "client_id": settings['api_device_client_id'],
     }
 
     logged_in = False
