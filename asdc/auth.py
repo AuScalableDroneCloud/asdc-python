@@ -108,7 +108,7 @@ def setup(config=None):
             load_dotenv()
         try:
             settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888') + '/user-redirect'
-            settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'openid profile email')
+            settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'http://localhost:8000/api')
             settings["api_client_id"] = os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
             settings["api_device_client_id"] = os.getenv('JUPYTER_OAUTH2_DEVICE_CLIENT_ID', '')
             settings["api_scope"] = os.getenv('JUPYTER_OAUTH2_SCOPE', settings["api_scope"])
@@ -224,7 +224,7 @@ def _listener():
         _check_settings()
         import os
         #Get from env
-        server_url = os.getenv('JUPYTERHUB_URL')
+        server_url = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888')
         baseurl = server_url + '/user-redirect'
         logging.info("Base url: ", baseurl)
 
@@ -468,7 +468,7 @@ async def stop_server():
     _server = None
     port = None
 
-def device_connect(config=None, qrcode=True, scope=""):
+def device_connect(config=None, qrcode=True, browser=False, scope=""):
     """
     Authenticate with the OAuth2 id provider using the device auth flow
 
@@ -567,6 +567,10 @@ def device_connect(config=None, qrcode=True, scope=""):
             qr = qrcode.QRCode()
             qr.add_data(verify_url)
             qr.print_ascii()
+
+    if browser:
+        import webbrowser
+        webbrowser.open(verify_url)
 
     headers2 = {
         "content-type": "application/x-www-form-urlencoded",

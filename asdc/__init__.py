@@ -15,6 +15,8 @@
 import requests
 import json
 import os
+import pathlib
+from slugify import slugify
 
 # This is the server process launched by installed entrypoint
 # Whenever request is made on (jupyterhub_url)/asdc this server is started
@@ -241,4 +243,60 @@ def showuserinfo():
     from IPython.display import display, HTML
     display(HTML("<img src='" + user["picture"] + "' width='120' height='120'>"))
 
+def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
+    """
+    Create symlinks with nicer names for mounted projects and tasks
+    """
+    #Assumes projects mounted at /mnt/project/PID/tasks/TID
+    #Will create project folder in home dir with links using project
+    #names and task names
+
+    '''
+    #Get all user projects and tasks
+    #user = userinfo()
+    user = {"name" : "admin@admin.com"}
+    auth.settings['api_audience'] = 'http://localhost:8000/api'
+    url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user["name"]
+    response = requests.get(url, timeout=10)
+    print(response.json)
+    '''
+
+    #1) Get the mounted projects list
+    prjfolders = [ f.path for f in os.scandir(src) if f.is_dir() ]
+
+    #2) Iterate projects....
+    for pf in prjfolders:
+        ppath = Path(pf)
+        PID = ppath.name
+
+        audience = auth.settings["api_audience"]
+        url = f"{audience}/plugins/asdc/projects/{PID}/gettasks"
+        response = requests.get(url, timeout=10)
+        data = response.json()
+
+        projname = data["name"]
+
+        #2b)  - Create dir $HOME/project/ with verbose name (use python-slugify)
+        #Append ID to handle projects with duplicate name
+        projdir = str(PID).zfill(5) + '_' + slugify(projname)
+        try:
+            os.makedirs(dest + '/' + projdir, exist_ok=True)
+        except (FileExistsError) as e:
+            pass
+
+        #3) Get the tasks per project using api url above from plugin
+        #3a iterate tasks
+        #Append index to handle tasks with duplicate names
+        idx = 1
+        for t in data["tasks"]:
+            tpath = ppath / "tasks" / str(t['id'])
+            lnpath = dest + '/' + projdir + '/' + str(idx).zfill(3) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
+            #Remove any existing file/link
+            try:
+                os.remove(lnpath)
+            except (FileNotFoundError) as e:
+                pass
+            #3b create symlink for task using same function as above
+            os.symlink(tpath, lnpath)
+            idx += 1
 
