@@ -200,8 +200,8 @@ THE SOFTWARE.
             id_token = parseJwt(urlData.id_token);
             urlData.id_token = id_token;
         }
-        //console.log('id_token: ' + id_token);
-        //console.log('urlData: ' + urlData);
+        console.log('id_token: ' + id_token);
+        console.log('urlData: ' + urlData);
 
         // check if urlData means an authentication error
         var msg = document.getElementById('msg');
@@ -218,6 +218,8 @@ THE SOFTWARE.
 
             // post message back to parent window
             sendMessageToParent(window, objMsg);
+
+            msg.innerHTML = msgHTML;
 
         } else {
             // no error
