@@ -215,6 +215,10 @@ THE SOFTWARE.
 
             // build message
             objMsg = Object.assign({ statusAuth: 'error' }, urlData);
+
+            // post message back to parent window
+            sendMessageToParent(window, objMsg);
+
         } else {
             // no error
             console.log('No error in urlData');
@@ -231,17 +235,16 @@ THE SOFTWARE.
 
             // build message
             objMsg = Object.assign({ statusAuth: 'ok' }, urlData);
+
+            // post message back to parent window
+            sendMessageToParent(window, objMsg);
+
+            msg.innerHTML = msgHTML + '<p>Close this tab/popup and start again</p>'
+
+            //Close the popup
+            window.close();
         }
 
-        // post message back to parent window
-        sendMessageToParent(window, objMsg);
-
-        msg.innerHTML = msgHTML + '<p>Close this tab/popup and start again</p>'
-
-        console.log('done');
-
-        //Close the popup
-        window.close();
     </script>
 </body>
 
