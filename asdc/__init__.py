@@ -271,8 +271,12 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
 
         audience = auth.settings["api_audience"]
         url = f"{audience}/plugins/asdc/projects/{PID}/gettasks"
-        response = requests.get(url, timeout=10)
+        #response = requests.get(url, timeout=10)
+        response = call_api(url) #Use authenticated endpoint
         data = response.json()
+        if not "name" in data:
+            print("Unexpected response: ", data)
+            return
 
         projname = data["name"]
 
@@ -289,7 +293,7 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
         #Append index to handle tasks with duplicate names
         idx = 1
         for t in data["tasks"]:
-            tpath = ppath / "tasks" / str(t['id'])
+            tpath = ppath / "task" / str(t['id'])
             lnpath = dest + '/' + projdir + '/' + str(idx).zfill(3) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
             #Remove any existing file/link
             try:
