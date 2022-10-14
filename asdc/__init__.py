@@ -282,7 +282,8 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
 
         #2b)  - Create dir $HOME/project/ with verbose name (use python-slugify)
         #Append ID to handle projects with duplicate name
-        projdir = str(PID).zfill(5) + '_' + slugify(projname)
+        projdir = str(PID) + '_' + slugify(projname)
+        #projdir = str(PID).zfill(5) + '_' + slugify(projname)
         try:
             os.makedirs(dest + '/' + projdir, exist_ok=True)
         except (FileExistsError) as e:
@@ -292,9 +293,12 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
         #3a iterate tasks
         #Append index to handle tasks with duplicate names
         idx = 1
+        #ntasks = len(data["tasks"]
+        #fill = math.floor(math.log10(ntasks)) + 1 #Calculate zero padding required
         for t in data["tasks"]:
             tpath = ppath / "task" / str(t['id'])
-            lnpath = dest + '/' + projdir + '/' + str(idx).zfill(3) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
+            lnpath = dest + '/' + projdir + '/' + str(idx) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
+            #lnpath = dest + '/' + projdir + '/' + str(idx).zfill(fill) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
             #Remove any existing file/link
             try:
                 os.remove(lnpath)
