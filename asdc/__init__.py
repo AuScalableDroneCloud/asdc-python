@@ -71,7 +71,7 @@ def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
     # this is because the user hasn't logged in to the main site yet with this auth method
     # (ie: originally logged in with github, use AAF to auth with jupyter)
     if r.status_code >= 400:
-        print(r.status_code, r.reason)
+        print(r.status_code, r.reason, url)
         if throw:
             raise(Exception("Error response from server!"))
     #print(r.text)
