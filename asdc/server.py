@@ -39,7 +39,7 @@ import asdc
 import pathlib
 import os
 
-await asdc.auth.connect(mode='iframe')
+await asdc.auth.connect()
 
 project = '{PID}'
 task = '{TID}'
