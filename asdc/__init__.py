@@ -32,7 +32,7 @@ from asdc.auth import *     #Also now available in root module
 auth.setup()
 
 #Utility functions
-def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
+def call_api(url, data=None, headersAPI=None, content_type='application/json', throw=False, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint
 
@@ -55,11 +55,12 @@ def call_api(url, data=None, throw=False, prefix=auth.settings["token_prefix"]):
         url = auth.settings["api_audience"] + url
 
     #WebODM api call
-    headersAPI = {
-    'accept': 'application/json',
-    'Content-type': 'application/json',
-    'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
-    }
+    if headersAPI is None:
+        headersAPI = {
+        'accept': 'application/json',
+        'Content-type': content_type,
+        'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
+        }
     
     #POST if data provided, otherwise GET
     if data:
