@@ -247,34 +247,39 @@ def showuserinfo():
 def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
     """
     Create symlinks with nicer names for mounted projects and tasks
-    """
-    #Assumes projects mounted at /mnt/project/PID/tasks/TID
-    #Will create project folder in home dir with links using project
-    #names and task names
 
-    '''
-    #Get all user projects and tasks
-    #user = userinfo()
-    user = {"name" : "admin@admin.com"}
-    auth.settings['api_audience'] = 'http://localhost:8000/api'
-    url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user["name"]
-    response = requests.get(url, timeout=10)
-    print(response.json)
-    '''
+    Assumes by defailt projects are mounted at /mnt/project/PID/tasks/TID,
+    will create project folder in home dir with links using project
+    names and task names
+    """
 
     #1) Get the mounted projects list
     prjfolders = [ f.path for f in os.scandir(src) if f.is_dir() ]
+
+    audience = auth.settings["api_audience"]
+    if auth.access_token:
+        #Can use authenticated API for each mounted project
+        url = f"{audience}/plugins/asdc/projects/{PID}/gettasks"
+        jsondata = None
+    else:
+        #Use the public API, requires valid username, returns all projects
+        user = os.getenv('JUPYTERHUB_USER', '')
+        url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
+        response = requests.get(url, timeout=10)
+        jsondata = response.json()
 
     #2) Iterate projects....
     for pf in prjfolders:
         ppath = Path(pf)
         PID = ppath.name
 
-        audience = auth.settings["api_audience"]
-        url = f"{audience}/plugins/asdc/projects/{PID}/gettasks"
-        #response = requests.get(url, timeout=10)
-        response = call_api(url) #Use authenticated endpoint
-        data = response.json()
+        #Use provided project/task data or call the API
+        if jsondata:
+            data = jsondata[PID]
+        else:
+            #response = requests.get(url, timeout=10)
+            response = call_api(url) #Use authenticated endpoint
+            data = response.json()
         if not "name" in data:
             print("Unexpected response: ", data)
             return
@@ -297,6 +302,8 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
         #ntasks = len(data["tasks"]
         #fill = math.floor(math.log10(ntasks)) + 1 #Calculate zero padding required
         for t in data["tasks"]:
+            if t["name"] is None:
+                t["name"] = str(t["id"])
             tpath = ppath / "task" / str(t['id'])
             lnpath = dest + '/' + projdir + '/' + str(idx) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
             #lnpath = dest + '/' + projdir + '/' + str(idx).zfill(fill) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
@@ -308,4 +315,5 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
             #3b create symlink for task using same function as above
             os.symlink(tpath, lnpath)
             idx += 1
+
 
