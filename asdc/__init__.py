@@ -218,7 +218,7 @@ def upload_asset(project, task, filename, directory=""):
     directory: str
         (optional) destination path for asset, relative to "assets" directory
     """
-    return upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, directory=directory)
+    return upload(f'/projects/{project}/tasks/{task}/assets/', filename, directory=directory)
 
 def upload_image(project, task, filename):
     """
