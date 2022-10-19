@@ -220,6 +220,22 @@ def upload_asset(project, task, filename, destination=""):
     """
     upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, destination=destination)
 
+def upload_image(project, task, filename, destination=""):
+    """
+    Call WebODM API endpoint to upload a source image file
+
+    Parameters
+    ----------
+    project: int
+        project ID
+    task: str
+        task ID
+    filename: str
+        image filename to upload
+    """
+    upload(f'/projects/{project}/tasks/{task}/upload/', filename)
+
+
 
 def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
     """
