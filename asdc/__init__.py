@@ -188,7 +188,6 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
 
     #Pass any additional post data in kwargs
     fields = kwargs
-    print(fields)
 
     #https://stackoverflow.com/a/67726532
     path = pathlib.Path(filepath)
@@ -204,7 +203,7 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
                        'Authorization': prefix + ' ' + auth.access_token if auth.access_token else ''}
             return requests.post(url, data=m, headers=headers)
 
-def upload_asset(project, task, filename, destination=""):
+def upload_asset(project, task, filename, directory=""):
     """
     Call WebODM API endpoint to upload an asset file
 
@@ -216,7 +215,7 @@ def upload_asset(project, task, filename, destination=""):
         task ID
     filename: str
         asset filename to upload
-    destination: str
+    directory: str
         (optional) destination path for asset, relative to "assets" directory
     """
     return upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, destination=destination)
