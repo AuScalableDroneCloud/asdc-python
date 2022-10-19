@@ -154,7 +154,7 @@ def download_asset(project, task, filename, overwrite=False):
     filename: str
         asset filename to download
     """
-    download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+    return download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
 
 def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["token_prefix"], **kwargs):
     """
@@ -188,6 +188,7 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
 
     #Pass any additional post data in kwargs
     fields = kwargs
+    print(fields)
 
     #https://stackoverflow.com/a/67726532
     path = pathlib.Path(filepath)
@@ -218,7 +219,7 @@ def upload_asset(project, task, filename, destination=""):
     destination: str
         (optional) destination path for asset, relative to "assets" directory
     """
-    upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, destination=destination)
+    return upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, destination=destination)
 
 def upload_image(project, task, filename, destination=""):
     """
@@ -233,7 +234,7 @@ def upload_image(project, task, filename, destination=""):
     filename: str
         image filename to upload
     """
-    upload(f'/projects/{project}/tasks/{task}/upload/', filename)
+    return upload(f'/projects/{project}/tasks/{task}/upload/', filename)
 
 
 
