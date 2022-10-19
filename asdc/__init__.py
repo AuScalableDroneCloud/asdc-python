@@ -349,6 +349,9 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
         url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
         response = requests.get(url, timeout=10)
         jsondata = response.json()
+        #Save to ./projects
+        with open(os.path.join(dest, 'projects.json'), 'w') as outfile:
+            json.dump(jsondata, outfile)
 
     #2) Iterate projects....
     for pf in prjfolders:
