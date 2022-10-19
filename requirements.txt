@@ -4,3 +4,4 @@ pillow
 qrcode
 python-dotenv
 python-slugify
+requests-toolbelt

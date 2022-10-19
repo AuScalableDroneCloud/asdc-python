@@ -12,11 +12,12 @@
 """
 #See also: https://github.com/localdevices/odk2odm/blob/main/odk2odm/odm_requests.py
 
-import requests
 import json
 import os
 import pathlib
 from slugify import slugify
+import requests
+from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 # This is the server process launched by installed entrypoint
 # Whenever request is made on (jupyterhub_url)/asdc this server is started
@@ -105,7 +106,7 @@ def download(url, filename=None, block_size=8192, overwrite=False, throw=False, 
     #WebODM api call
     headersAPI = {
     'accept': 'application/json',
-    'Content-type': 'application/json',
+    'Content-type': 'application/octet-stream',
     'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
     }
 
@@ -153,7 +154,72 @@ def download_asset(project, task, filename, overwrite=False):
     filename: str
         asset filename to download
     """
-    download('/projects/{PID}/tasks/{TID}/download/{ASSET}'.format(PID=project, TID=task, ASSET=filename), overwrite=overwrite)
+    download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+
+def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["token_prefix"], **kwargs):
+    """
+    Call an API endpoint to upload a file
+
+    Parameters
+    ----------
+    url: str
+        endpoint url, either full uri or path / which will be appended to "api_audience" url from settings
+    filepath: str
+        file path to open and upload
+    block_size: int
+        size of chunks to upload
+    throw: bool
+        throw exception on http errors, default: False
+
+    Returns
+    -------
+    object
+        http response object
+    """
+    if url[0:4] != "http":
+        #Prepend the configured api url
+        url = auth.settings["api_audience"] + url
+
+    #Progress bar
+    if auth.is_notebook():
+        from tqdm.notebook import tqdm
+    else:
+        import tqdm
+
+    #Pass any additional post data in kwargs
+    fields = kwargs
+
+    #https://stackoverflow.com/a/67726532
+    path = pathlib.Path(filepath)
+    total_size = path.stat().st_size
+    filename = path.name
+
+    with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size) as bar:
+        with open(filepath, "rb") as f:
+            fields["file"] = (filename, f)
+            e = MultipartEncoder(fields=fields)
+            m = MultipartEncoderMonitor(e, lambda monitor: bar.update(monitor.bytes_read - bar.n))
+            headers = {'Content-Type': m.content_type,
+                       'Authorization': prefix + ' ' + auth.access_token if auth.access_token else ''}
+            return requests.post(url, data=m, headers=headers)
+
+def upload_asset(project, task, filename, destination=""):
+    """
+    Call WebODM API endpoint to upload an asset file
+
+    Parameters
+    ----------
+    project: int
+        project ID
+    task: str
+        task ID
+    filename: str
+        asset filename to upload
+    destination: str
+        (optional) destination path for asset, relative to "assets" directory
+    """
+    upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, destination=destination)
+
 
 def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
     """
