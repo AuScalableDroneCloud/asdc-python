@@ -218,9 +218,9 @@ def upload_asset(project, task, filename, directory=""):
     directory: str
         (optional) destination path for asset, relative to "assets" directory
     """
-    return upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, destination=destination)
+    return upload(f'/projects/{project}/tasks/{task}/uploadasset/', filename, directory=directory)
 
-def upload_image(project, task, filename, destination=""):
+def upload_image(project, task, filename):
     """
     Call WebODM API endpoint to upload a source image file
 
