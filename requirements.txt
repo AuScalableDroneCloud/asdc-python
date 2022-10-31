@@ -1,7 +1,0 @@
-tqdm
-jupyter-server-proxy
-pillow
-qrcode
-python-dotenv
-python-slugify
-requests-toolbelt
