@@ -336,6 +336,7 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
     """
 
     #1) Get the mounted projects list
+    if not os.path.exists(src): return
     prjfolders = [ f.path for f in os.scandir(src) if f.is_dir() ]
 
     audience = auth.settings["api_audience"]
