@@ -351,6 +351,7 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
         response = requests.get(url, timeout=10)
         jsondata = response.json()
         #Save to ./projects
+        os.makedirs(dest, exist_ok=True)
         with open(os.path.join(dest, 'projects.json'), 'w') as outfile:
             json.dump(jsondata, outfile)
 
