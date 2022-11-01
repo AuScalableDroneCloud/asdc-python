@@ -26,6 +26,8 @@ from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 def setup_asdc():
   return {
     'command': ['python', '-m', 'asdc.server', '{port}', '{base_url}'],
+    'timeout' : 20,
+    #'launcher_entry' : {'enabled' : True, 'icon_path' : 'logo.svg', 'title' : 'ASDC'}
   }
 
 import asdc.auth as auth    #For back compatibility
