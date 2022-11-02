@@ -412,7 +412,7 @@ def tasks():
 def projects():
     return [int(p) for p in re.split('\W+', os.getenv("ASDC_PROJECTS", ""))]
 
-def project_tasks(home='/home/jovyan/projects'):
+def project_tasks(filtered=True, home='/home/jovyan/projects'):
     """
     Returns details of projects and task heirarchy passed in,
     Uses the full cached project/task data and filters by the list of passed items
@@ -423,11 +423,14 @@ def project_tasks(home='/home/jovyan/projects'):
     with open(os.path.join(home, 'projects.json'), 'r') as infile:
         jsondata = json.load(infile)
         for p in jsondata:
-            if int(p) in plist:
-                output[p] = jsondata[p]
+            if not filtered or int(p) in plist:
+                output += [jsondata[p]]
                 otasks = []
                 for t in jsondata[p]["tasks"]:
-                    if t in tlist:
+                    if not filtered or t["id"] in tlist:
                         otasks += [t]
-                output[p]["tasks"] = otasks
+                output[-1]["id"] = int(p)
+                output[-1]["tasks"] = otasks
     return output
+
+
