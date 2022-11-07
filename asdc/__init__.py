@@ -34,6 +34,7 @@ def setup_asdc():
 import asdc.auth as auth    #For back compatibility
 from asdc.auth import *     #Also now available in root module
 auth.setup()
+project_dir = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan'), 'projects')
 
 #Utility functions
 def call_api(url, data=None, headersAPI=None, content_type='application/json', throw=False, prefix=auth.settings["token_prefix"]):
@@ -329,7 +330,20 @@ def showuserinfo():
     from IPython.display import display, HTML
     display(HTML("<img src='" + user["picture"] + "' width='120' height='120'>"))
 
-def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
+def load_projects_and_tasks(cache=project_dir):
+    #Get user projects and task info from  public API
+    #Cache as projects.json
+    user = os.getenv('JUPYTERHUB_USER', '')
+    url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
+    response = requests.get(url, timeout=10)
+    jsondata = response.json()
+    #Save to ./projects
+    os.makedirs(cache, exist_ok=True)
+    with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
+        json.dump(jsondata, outfile)
+    return jsondata
+
+def create_links(src='/mnt/project', dest=project_dir):
     """
     Create symlinks with nicer names for mounted projects and tasks
 
@@ -349,14 +363,7 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
         jsondata = None
     else:
         #Use the public API, requires valid username, returns all projects
-        user = os.getenv('JUPYTERHUB_USER', '')
-        url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
-        response = requests.get(url, timeout=10)
-        jsondata = response.json()
-        #Save to ./projects
-        os.makedirs(dest, exist_ok=True)
-        with open(os.path.join(dest, 'projects.json'), 'w') as outfile:
-            json.dump(jsondata, outfile)
+        jsondata = load_projects_and_tasks(dest)
 
     #2) Iterate projects....
     for pf in prjfolders:
@@ -406,31 +413,113 @@ def create_links(src='/mnt/project', dest='/home/jovyan/projects'):
             os.symlink(tpath, lnpath)
             idx += 1
 
-def tasks():
-    return re.split('[, ]+', os.getenv("ASDC_TASKS", ""))
+def get_tasks():
+    global selected, tasks
+    tasks = list(filter(None, re.split('[, ]+', os.getenv("ASDC_TASKS", ""))))
+    if len(tasks) and not selected["task"]:
+        selected["task"] = tasks[0]
+    return tasks
 
-def projects():
-    return [int(p) for p in re.split('\W+', os.getenv("ASDC_PROJECTS", ""))]
+def get_projects():
+    global selected, projects
+    projects = [int(p) for p in list(filter(None, re.split('\W+', os.getenv("ASDC_PROJECTS", ""))))]
+    if len(projects) and not selected["project"]:
+        selected["project"] = projects[0]
+    return projects
 
-def project_tasks(filtered=True, home='/home/jovyan/projects'):
+def project_tasks(filtered=True, home=project_dir):
     """
     Returns details of projects and task heirarchy passed in,
     Uses the full cached project/task data and filters by the list of passed items
     """
-    tlist = tasks()
-    plist = projects()
-    output = {}
-    with open(os.path.join(home, 'projects.json'), 'r') as infile:
-        jsondata = json.load(infile)
-        for p in jsondata:
-            if not filtered or int(p) in plist:
-                output += [jsondata[p]]
-                otasks = []
-                for t in jsondata[p]["tasks"]:
-                    if not filtered or t["id"] in tlist:
-                        otasks += [t]
-                output[-1]["id"] = int(p)
-                output[-1]["tasks"] = otasks
+    tlist = get_tasks()
+    plist = get_projects()
+    output = []
+    fn = os.path.join(home, 'projects.json')
+    if os.path.exists(fn):
+        with open(fn, 'r') as infile:
+            jsondata = json.load(infile)
+    else:
+        jsondata = load_projects_and_tasks(home)
+
+    for p in jsondata:
+        sel_p = int(p) in plist
+        if not filtered or sel_p:
+            output += [jsondata[p]]
+            otasks = []
+            for t in jsondata[p]["tasks"]:
+                sel_t = t["id"] in tlist
+                if not filtered or sel_t:
+                    otasks += [t]
+                    if not filtered:
+                        otasks[-1]["selected"] = sel_t
+            output[-1]["id"] = int(p)
+            if not filtered:
+                output[-1]["selected"] = sel_p
+            output[-1]["tasks"] = otasks
     return output
 
+
+# Active selections
+selected = {"project": None, "task" : None}
+tasks = get_tasks()
+projects = get_projects()
+
+def selection_info():
+    global selected
+    baseurl = settings['api_audience'] 
+    if selected['project']:
+        print(f"{baseurl}/projects/{selected['project']}/")
+        if selected['task']:
+            print(f"{baseurl}/projects/{selected['project']}/tasks/{selected['task']}")
+
+def task_select(filtered=False, throw=True):
+    """
+    Display project and task selection widgets
+    Get first selected project/task
+    If none selection and throw=True, raise exception to stop execution
+    """
+    if not auth.is_notebook():
+        return
+    import ipywidgets as widgets
+    from IPython.display import display
+
+    #Project/task selection widget
+    pdata = project_tasks(filtered=filtered)
+    pselections = []
+    tselections = {}
+    init_p = None
+    init_t = None
+    for p in pdata:
+        pselections += [(str(p["id"]) + ": " + p["name"], p["id"])]
+        if not init_p and (filtered or p["selected"]):
+            init_p = p["id"]
+        tselections[p["id"]] = []
+        for t in p["tasks"]:
+            tselections[p["id"]] += [("Task #" + t["id"] if t["name"] is None else t["name"] ,  t["id"])]
+            if not init_t and (filtered or t["selected"]):
+                init_t = t["id"]
+                init_p = p["id"] #Ensure matching project selected too
+
+    def select_task(task):
+        #print(projectW.value, task)
+        global selected
+        selected = {"project": projectW.value, "task" : task} # Active selections
+        selection_info()
+
+    def select_project(project):
+        taskW.options = tselections[project]
+
+    projectW = widgets.Dropdown(options=pselections, value=init_p)
+    init = projectW.value
+    taskW = widgets.Dropdown(options=tselections[init], value=init_t)
+    j = widgets.interactive(select_task, task=taskW)
+    i = widgets.interactive(select_project, project=projectW)
+    display(i,j)
+
+    #Use the first selection passed in env, or interactively select if none
+    if not init_p or not init_t:
+        raise(Exception("Please select a task to continue..."))
+    #Return the first selection
+    return init_p, init_t
 
