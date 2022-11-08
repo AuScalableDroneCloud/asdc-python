@@ -432,38 +432,37 @@ def project_tasks(filtered=True, home=project_dir):
     Returns details of projects and task heirarchy passed in,
     Uses the full cached project/task data and filters by the list of passed items
     """
+    global project_dict, task_dict
     tlist = get_tasks()
     plist = get_projects()
     output = []
     fn = os.path.join(home, 'projects.json')
     if os.path.exists(fn):
         with open(fn, 'r') as infile:
-            jsondata = json.load(infile)
+            project_dict = json.load(infile)
     else:
-        jsondata = load_projects_and_tasks(home)
+        project_dict = load_projects_and_tasks(home)
 
-    for p in jsondata:
+    for p in project_dict:
         sel_p = int(p) in plist
         if not filtered or sel_p:
-            output += [jsondata[p]]
+            output += [project_dict[p]]
             otasks = []
-            for t in jsondata[p]["tasks"]:
+            for t in project_dict[p]["tasks"]:
                 sel_t = t["id"] in tlist
                 if not filtered or sel_t:
                     otasks += [t]
                     if not filtered:
                         otasks[-1]["selected"] = sel_t
+                #Save in task_dict too
+                task_dict[t["id"]] = t
+
             output[-1]["id"] = int(p)
             if not filtered:
                 output[-1]["selected"] = sel_p
             output[-1]["tasks"] = otasks
     return output
 
-
-# Active selections
-selected = {"project": None, "task" : None}
-tasks = get_tasks()
-projects = get_projects()
 
 def selection_info():
     global selected
@@ -522,4 +521,12 @@ def task_select(filtered=False, throw=True):
         raise(Exception("Please select a task to continue..."))
     #Return the first selection
     return init_p, init_t
+
+# Active selections
+selected = {"project": None, "task" : None}
+tasks = get_tasks()
+projects = get_projects()
+task_dict = {}
+project_dict = {}
+
 
