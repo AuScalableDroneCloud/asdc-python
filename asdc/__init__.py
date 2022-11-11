@@ -158,7 +158,18 @@ def download_asset(project, task, filename, overwrite=False):
     filename: str
         asset filename to download
     """
-    return download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+    #If it failed, try the raw asset url
+    if res.status_code == 404:
+        #Raw asset download, needed for custom assets, but requires full path:
+        #eg: orthophoto.tif => odm_orthophoto/odm_orthophoto.tif
+        res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+    return res
+
+def download_asset(filename, overwrite=False):
+    #Using the default selections
+    project_id, task_id = get_selection()
+    download_asset(project_id, task_id, filename, overwrite)
 
 def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["token_prefix"], **kwargs):
     """
@@ -207,7 +218,7 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
                        'Authorization': prefix + ' ' + auth.access_token if auth.access_token else ''}
             return requests.post(url, data=m, headers=headers)
 
-def upload_asset(project, task, filename, directory=""):
+def upload_asset(project, task, filename):
     """
     Call WebODM API endpoint to upload an asset file
 
@@ -218,11 +229,16 @@ def upload_asset(project, task, filename, directory=""):
     task: str
         task ID
     filename: str
-        asset filename to upload
-    directory: str
-        (optional) destination path for asset, relative to "assets" directory
+        asset filename to upload (can include subdir)
     """
-    return upload(f'/projects/{project}/tasks/{task}/assets/', filename, directory=directory)
+    #Split path and filename
+    path, filename = os.path.split(filename)
+    return upload(f'/projects/{project}/tasks/{task}/assets/{path}', filename)
+
+def upload_asset(filename):
+    #Using the default selections
+    project_id, task_id = get_selection()
+    upload_asset(project_id, task_id, filename)
 
 def upload_image(project, task, filename):
     """
@@ -239,6 +255,10 @@ def upload_image(project, task, filename):
     """
     return upload(f'/projects/{project}/tasks/{task}/upload/', filename)
 
+def upload_image(filename):
+    #Using the default selections
+    project_id, task_id = get_selection()
+    upload_image(project_id, task_id, filename)
 
 
 def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
