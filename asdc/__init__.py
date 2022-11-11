@@ -492,11 +492,9 @@ def selection_info():
         if selected['task']:
             print(f"{baseurl}/projects/{selected['project']}/tasks/{selected['task']}")
 
-def task_select(filtered=False, throw=True):
+def task_select(filtered=False):
     """
     Display project and task selection widgets
-    Get first selected project/task
-    If none selection and throw=True, raise exception to stop execution
     """
     if not auth.is_notebook():
         return
@@ -507,8 +505,12 @@ def task_select(filtered=False, throw=True):
     pdata = project_tasks(filtered=filtered)
     pselections = []
     tselections = {}
-    init_p = None
-    init_t = None
+    #init_p = None
+    #init_t = None
+    #If no initial selection, just use any active saved selection
+    global selected
+    init_p = selected['project']
+    init_t = selected['task']
     for p in pdata:
         pselections += [(str(p["id"]) + ": " + p["name"], p["id"])]
         if not init_p and (filtered or p["selected"]):
@@ -521,24 +523,50 @@ def task_select(filtered=False, throw=True):
                 init_p = p["id"] #Ensure matching project selected too
 
     def select_task(task):
-        #print(projectW.value, task)
         global selected
+        #print(projectW.value, task)
         selected = {"project": projectW.value, "task" : task} # Active selections
         selection_info()
 
     def select_project(project):
-        taskW.options = tselections[project]
+        if project:
+            taskW.options = tselections[project]
 
     projectW = widgets.Dropdown(options=pselections, value=init_p)
-    init = projectW.value
+    init = pselections[0][1]
+    if projectW.value:
+        init = projectW.value
     taskW = widgets.Dropdown(options=tselections[init], value=init_t)
     j = widgets.interactive(select_task, task=taskW)
     i = widgets.interactive(select_project, project=projectW)
-    display(i,j)
+    #Run-all below button, requires ipylab
+    try:
+        from ipylab import JupyterFrontEnd
+        import ipywidgets as widgets
+        app = JupyterFrontEnd()
+        def run_all(ev):
+            app.commands.execute('notebook:run-all-below')
 
+        button = widgets.Button(description="Run all below", icon='play')
+        button.on_click(run_all)
+        display(i, j, button)
+    except:
+        #Nonessential feature, ignore errors
+        display(i, j)
+        pass
+
+def get_selection():
+    """
+    Get first selected project/task
+    If none selected, raise exception to stop execution
+    """
+    global selected
+    init_p = selected['project']
+    init_t = selected['task']
     #Use the first selection passed in env, or interactively select if none
     if not init_p or not init_t:
         raise(Exception("Please select a task to continue..."))
+
     #Return the first selection
     return init_p, init_t
 
