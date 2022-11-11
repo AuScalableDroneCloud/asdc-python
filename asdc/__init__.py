@@ -135,7 +135,9 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
     else:
         r = requests.get(url, headers=headersAPI, stream=True)
     #with requests.get(url, headers=headersAPI, stream=True) as r:
-    if r:
+    if r.status_code >= 400:
+        return None
+    else:
         total_size_in_bytes= int(r.headers.get('content-length', 0))
         progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
         r.raise_for_status()
@@ -170,7 +172,7 @@ def download_asset(filename, project=None, task=None, overwrite=False):
 
     res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
     #If it failed, try the raw asset url
-    if res.status_code == 404:
+    if res is None:
         #Raw asset download, needed for custom assets, but requires full path:
         #eg: orthophoto.tif => odm_orthophoto/odm_orthophoto.tif
         res =  download(f'/projects/{project}/tasks/{task}/assets/{filename}', overwrite=overwrite)
