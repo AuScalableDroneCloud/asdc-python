@@ -83,7 +83,7 @@ def call_api(url, data=None, headersAPI=None, content_type='application/json', t
     #print(r.text)
     return r
 
-def download(url, filename=None, block_size=8192, overwrite=False, throw=False, prefix=auth.settings["token_prefix"]):
+def download(url, filename=None, block_size=8192, data=None, overwrite=False, throw=False, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint to download a file
 
@@ -129,7 +129,13 @@ def download(url, filename=None, block_size=8192, overwrite=False, throw=False, 
 
     # NOTE the stream=True parameter below
     #https://stackoverflow.com/a/16696317
-    with requests.get(url, headers=headersAPI, stream=True) as r:
+    #POST if data provided, otherwise GET
+    if data:
+        r = requests.post(url, headers=headersAPI, json=data, stream=True)
+    else:
+        r = requests.get(url, headers=headersAPI, stream=True)
+    #with requests.get(url, headers=headersAPI, stream=True) as r:
+    if r:
         total_size_in_bytes= int(r.headers.get('content-length', 0))
         progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
         r.raise_for_status()
