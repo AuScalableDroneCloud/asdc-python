@@ -17,7 +17,7 @@ If it will work with other providers and scenarios is not known.
 ## Usage
 
 ```
-import asdc.auth as auth
+import asdc
 
 config = {
     "default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
@@ -29,21 +29,21 @@ config = {
 }
 
 #Pass the config dict above (this can also be loaded from environment variables)
-auth.setup(config)
+asdc.auth.setup(config)
 
 #Connect to the OAuth2 provider, default is to open a new window for the login
-await auth.connect()
+await asdc.connect()
 
 #Display info about a logged in user
-auth.showuserinfo()
+asdc.showuserinfo()
 
 #Call an API with GET
-r = auth.call_api('/projects/')
+r = asdc.call_api('/projects/')
 print(r.json())
 
 #Call an API with POST
 data = {'name': 'My Project', 'description': 'Created by API with token'}
-r = auth.call_api('/projects/', data)
+r = asdc.call_api('/projects/', data)
 print(r.json())
 
 ```
@@ -272,6 +272,9 @@ def _listener():
 
             //Close iframe if any
             document.querySelectorAll('.asdc-oauth-frame').forEach(e => e.remove());
+        } else {
+            //Show iframe if any
+            document.querySelectorAll('.asdc-oauth-frame').forEach(e => e.style.height = '300px');
         }
     }
     window.addEventListener("message", message_received);
@@ -280,7 +283,7 @@ def _listener():
     script = temp_obj.substitute(BASEURL=baseurl, PORT=str(port))
     display(HTML(script))
 
-def _send(mode='popup'):
+def _send(mode='iframe'):
     """ Open auth request page with iframe / popup / link and listen for postMessage 
     
     Parameters
@@ -332,7 +335,7 @@ def _send(mode='popup'):
                 window.open("$URL");
                 html += '(Authentication window may not appear if you have a popup blocker, <a href="$URL" target="_blank" rel="opener">Click here to login</a> instead)';
             } else if (mode == 'iframe') {
-                html = '<iframe class="asdc-oauth-frame" src="$URL" style="width: 600px; height: 300px; border: 0;">';
+                html = '<iframe class="asdc-oauth-frame" src="$URL" style="width: 400px; height: 0px; border: 0;">';
             } else if (mode == 'iframe_debug') {
                 html = '<iframe src="$URL" width="400px" height="300px" style="border:1px solid #ccc;">';
             } else if (mode == 'link') {
