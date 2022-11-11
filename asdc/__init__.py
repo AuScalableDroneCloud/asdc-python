@@ -151,31 +151,115 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
             print("ERROR, something went wrong")
     return filename
 
-def download_asset(project, task, filename, overwrite=False):
+def download_asset(filename, project=None, task=None, overwrite=False):
     """
     Call WebODM API endpoint to download an asset file
 
     Parameters
     ----------
+    filename: str
+        asset filename to download
     project: int
         project ID
     task: str
         task ID
-    filename: str
-        asset filename to download
     """
+    if project is None or task is None:
+        #Using the default selections
+        project, task = get_selection()
+
     res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
     #If it failed, try the raw asset url
     if res.status_code == 404:
         #Raw asset download, needed for custom assets, but requires full path:
         #eg: orthophoto.tif => odm_orthophoto/odm_orthophoto.tif
-        res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+        res =  download(f'/projects/{project}/tasks/{task}/assets/{filename}', overwrite=overwrite)
     return res
 
-def download_asset(filename, overwrite=False):
-    #Using the default selections
-    project_id, task_id = get_selection()
-    download_asset(project_id, task_id, filename, overwrite)
+def export_asset(asset, params, project=None, task=None, overwrite=False):
+    """
+    Call WebODM API endpoints to export a converted asset file
+    The existing asset file can be downloaded with the /download/fn endpoint
+
+    Parameters
+    ----------
+    asset: str
+        asset label to download
+    params: dict
+        params for conversion, eg:
+        {
+            "format": "LAZ",
+            "epsg": "32615",
+        }
+    project: int
+        project ID
+    task: str
+        task ID
+
+
+    data {
+        format: ""
+        epsg: "3112" / "4326"
+    }
+
+    #EPSG:
+    <option value="32615">UTM (EPSG:32615)</option>
+    <option value="4326">Lat/Lon (EPSG:4326)</option>
+    <option value="3857">Web Mercator (EPSG:3857)</option>
+    <option value="custom">Custom EPSG</option>
+
+    #Orthophoto: orthophoto
+    <option value="gtiff">GeoTIFF (Raw)</option>
+    <option value="gtiff-rgb">GeoTIFF (RGB)</option>
+    <option value="jpg">JPEG (RGB)</option>
+    <option value="png">PNG (RGB)</option>
+    <option value="kmz">KMZ (RGB)</option>
+
+    #Surface Model: dsm
+    <option value="gtiff">GeoTIFF (Raw)</option>
+    <option value="gtiff-rgb">GeoTIFF (RGB)</option>
+    <option value="jpg">JPEG (RGB)</option>
+    <option value="png">PNG (RGB)</option>
+    <option value="kmz">KMZ (RGB)</option>
+
+    #Point cloud: georeferenced_model
+    <option value="laz">LAZ</option>
+    <option value="las">LAS</option>
+    <option value="ply">PLY</option>
+    <option value="csv">CSV</option>
+
+    """
+    if project is None or task is None:
+        #Using the default selections
+        project, task = get_selection()
+
+    #First post to /export, then get from the task
+    res = call_api(f'/projects/{project}/tasks/{task}/{asset}/export', data=params)
+    data = res.json()
+    if 'celery_task_id' in data:
+        # wait for the result to be available before continuing
+        worker_id = data['celery_task_id']
+        print("Processing request...", end='')
+        timeout_seconds = 60
+        result = {"ready": False}
+        for i in range(0,timeout_seconds):
+            time.sleep(1)
+            #Check the status
+            r = call_api(f'/workers/check/{worker_id}')
+            result = r.json()
+            if result["ready"]:
+                break
+            print('.', end='')
+            sys.stdout.flush()
+    
+        if not result["ready"]:
+            raise(Exception("Timed out awaiting result!"))
+        else:
+            print('.. done.')
+            filename = data['filename']
+            res = download(f'/workers/get/{worker_id}?filename={filename}', filename, overwrite=overwrite)
+
+    return res
 
 def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["token_prefix"], **kwargs):
     """
@@ -224,47 +308,45 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
                        'Authorization': prefix + ' ' + auth.access_token if auth.access_token else ''}
             return requests.post(url, data=m, headers=headers)
 
-def upload_asset(project, task, filename):
+def upload_asset(filename, project=None, task=None):
     """
     Call WebODM API endpoint to upload an asset file
 
     Parameters
     ----------
+    filename: str
+        asset filename to upload (can include subdir)
     project: int
         project ID
     task: str
         task ID
-    filename: str
-        asset filename to upload (can include subdir)
     """
+    if project is None or task is None:
+        #Using the default selections
+        project, task = get_selection()
+
     #Split path and filename
     path, filename = os.path.split(filename)
     return upload(f'/projects/{project}/tasks/{task}/assets/{path}', filename)
 
-def upload_asset(filename):
-    #Using the default selections
-    project_id, task_id = get_selection()
-    upload_asset(project_id, task_id, filename)
-
-def upload_image(project, task, filename):
+def upload_image(filename, project, task):
     """
     Call WebODM API endpoint to upload a source image file
 
     Parameters
     ----------
+    filename: str
+        image filename to upload
     project: int
         project ID
     task: str
         task ID
-    filename: str
-        image filename to upload
     """
-    return upload(f'/projects/{project}/tasks/{task}/upload/', filename)
+    if project is None or task is None:
+        #Using the default selections
+        project, task = get_selection()
 
-def upload_image(filename):
-    #Using the default selections
-    project_id, task_id = get_selection()
-    upload_image(project_id, task_id, filename)
+    return upload(f'/projects/{project}/tasks/{task}/upload/', filename)
 
 
 def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
