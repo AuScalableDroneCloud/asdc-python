@@ -440,15 +440,14 @@ def showuserinfo():
 
 def load_projects_and_tasks(cache=project_dir):
     #Get user projects and task info from  public API
-    #Cache as projects.json
     user = os.getenv('JUPYTERHUB_USER', '')
     url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
     response = requests.get(url, timeout=10)
     jsondata = response.json()
     #Save to ./projects
-    os.makedirs(cache, exist_ok=True)
-    with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
-        json.dump(jsondata, outfile)
+    #os.makedirs(cache, exist_ok=True)
+    #with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
+    #    json.dump(jsondata, outfile)
     return jsondata
 
 def create_links(src='/mnt/project', dest=project_dir):
@@ -544,12 +543,13 @@ def project_tasks(filtered=True, home=project_dir):
     tlist = get_tasks()
     plist = get_projects()
     output = []
-    fn = os.path.join(home, 'projects.json')
-    if os.path.exists(fn):
-        with open(fn, 'r') as infile:
-            project_dict = json.load(infile)
-    else:
-        project_dict = load_projects_and_tasks(home)
+    #fn = os.path.join(home, 'projects.json')
+    #if os.path.exists(fn):
+    #    print("LOAD FROM FILE", fn)
+    #    with open(fn, 'r') as infile:
+    #        project_dict = json.load(infile)
+    #else:
+    project_dict = load_projects_and_tasks(home)
 
     for p in project_dict:
         sel_p = int(p) in plist
