@@ -667,8 +667,7 @@ def task_select(filtered=False):
     #init_t = None
     #If no initial selection, just use any active saved selection
     global selected
-    init_p = selected['project']
-    init_t = selected['task']
+    init_p, init_t = get_selection()
     for p in pdata:
         pselections += [(str(p["id"]) + ": " + p["name"], p["id"])]
         if not init_p and (filtered or p["selected"]):
@@ -679,6 +678,25 @@ def task_select(filtered=False):
             if not init_t and (filtered or t["selected"]):
                 init_t = t["id"]
                 init_p = p["id"] #Ensure matching project selected too
+
+    #Ensure any passed selections are valid (found in lists)
+    found_p = False
+    found_t = False
+    for p in pselections:
+        if not found_t:
+            for t in tselections[p[1]]:
+                if t[1] == init_t:
+                    found_t = True
+                    break
+        if p[1] == init_p:
+            found_p = True
+            break
+    if not found_p:
+        print("Project not found: ", init_p)
+        init_p = None
+    if not found_t:
+        print("Task not found: ", init_t)
+        init_t = None
 
     def select_task(task):
         global selected
@@ -727,13 +745,7 @@ def get_selection():
     """
     global selected, projects, tasks
     init_p = selected['project']
-    if not init_p in projects:
-        init_p = None
-        print("Project not found: ", init_p)
     init_t = selected['task']
-    if not init_t in tasks:
-        init_t = None
-        print("Task not found: ", init_t)
     #Use the first selection passed in env, or interactively select if none
     if not init_p or not init_t:
         raise(Exception("Please select a task to continue..."))
