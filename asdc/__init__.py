@@ -499,13 +499,17 @@ def load_projects_and_tasks(cache=project_dir):
     #Get user projects and task info from  public API
     user = os.getenv('JUPYTERHUB_USER', '')
     url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
-    response = requests.get(url, timeout=10)
-    jsondata = response.json()
-    #Save to ./projects
-    #os.makedirs(cache, exist_ok=True)
-    #with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
-    #    json.dump(jsondata, outfile)
-    return jsondata
+    try:
+        response = requests.get(url, timeout=10)
+        jsondata = response.json()
+        #Save to ./projects
+        #os.makedirs(cache, exist_ok=True)
+        #with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
+        #    json.dump(jsondata, outfile)
+        return jsondata
+    except (Exception) as e:
+        print("Failed to load user projects from api", e)
+        return None
 
 def create_links(src='/mnt/project', dest=project_dir):
     """
@@ -528,6 +532,8 @@ def create_links(src='/mnt/project', dest=project_dir):
     else:
         #Use the public API, requires valid username, returns all projects
         jsondata = load_projects_and_tasks(dest)
+        if not jsondata:
+            return
 
     #2) Iterate projects....
     for pf in prjfolders:
@@ -607,6 +613,8 @@ def project_tasks(filtered=True, home=project_dir):
     #        project_dict = json.load(infile)
     #else:
     project_dict = load_projects_and_tasks(home)
+    if not project_dict:
+        return None
 
     for p in project_dict:
         sel_p = int(p) in plist
@@ -648,6 +656,8 @@ def task_select(filtered=False):
 
     #Project/task selection widget
     pdata = project_tasks(filtered=filtered)
+    if not pdata:
+        return
     pselections = []
     tselections = {}
     #init_p = None
