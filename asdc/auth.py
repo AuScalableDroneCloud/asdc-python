@@ -372,7 +372,7 @@ def is_notebook():
     # check for `kernel` attribute on the IPython instance
     return getattr(get_ipython(), 'kernel', None) is not None
 
-async def connect(config=None, mode='popup', timeout_seconds=30, scope=""):
+async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
     """
     Authenticate with the OAuth2 id provider
 
