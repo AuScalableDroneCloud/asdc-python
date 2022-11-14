@@ -338,9 +338,9 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
 
     if progress:
         with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size) as bar:
-            upload(bar)
+            return upload(bar)
     else:
-        upload()
+        return upload()
 
 def upload_asset(filename, dest=None, project=None, task=None, progress=True):
     """
