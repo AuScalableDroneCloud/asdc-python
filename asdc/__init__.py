@@ -76,7 +76,7 @@ def call_api(url, data=None, headersAPI=None, content_type='application/json', t
     #Note: if response is 403 Forbidden {'detail': 'Username not available'}
     # this is because the user hasn't logged in to the main site yet with this auth method
     # (ie: originally logged in with github, use AAF to auth with jupyter)
-    if r.status_code >= 400:
+    if not r.ok:
         print(r.status_code, r.reason, url)
         if throw:
             raise(Exception("Error response from server!"))
@@ -138,7 +138,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
     else:
         r = requests.get(url, headers=headersAPI, stream=True)
     #with requests.get(url, headers=headersAPI, stream=True) as r:
-    if r.status_code >= 400:
+    if not r.ok:
         print("Error response:", r, url)
         return None
     else:
@@ -791,7 +791,7 @@ def new_task(name, project=None, options=None):
 
     url = f"/projects/{project}/tasks/"
     res = call_api(url, data=data)
-    if res.status_code >= 400:
+    if not res.ok:
         print("Error response:", res, url)
         return None
     task = res.json()
