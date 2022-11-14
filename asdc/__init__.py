@@ -713,27 +713,33 @@ def task_select(filtered=False):
         display(i, j)
         pass
 
-def get_selection():
-    """
-    Get first selected project/task
-    If none selected, raise exception to stop execution
-    """
-    global selected
-    init_p = selected['project']
-    init_t = selected['task']
-    #Use the first selection passed in env, or interactively select if none
-    if not init_p or not init_t:
-        raise(Exception("Please select a task to continue..."))
-
-    #Return the first selection
-    return init_p, init_t
-
 # Active selections
 selected = {"project": None, "task" : None}
 tasks = get_tasks()
 projects = get_projects()
 task_dict = {}
 project_dict = {}
+
+def get_selection():
+    """
+    Get first selected project/task
+    If none selected, raise exception to stop execution
+    """
+    global selected, projects, tasks
+    init_p = selected['project']
+    if not init_p in projects:
+        init_p = None
+        print("Project not found: ", init_p)
+    init_t = selected['task']
+    if not init_t in tasks:
+        init_t = None
+        print("Task not found: ", init_t)
+    #Use the first selection passed in env, or interactively select if none
+    if not init_p or not init_t:
+        raise(Exception("Please select a task to continue..."))
+
+    #Return the first selection
+    return init_p, init_t
 
 def new_task(name, project=None, options=None):
     """
