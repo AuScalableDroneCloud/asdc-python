@@ -755,7 +755,6 @@ def new_task(name, project=None, options=None):
         #Using the default selections
         project, task = get_selection()
     # https://github.com/localdevices/odk2odm/blob/main/odk2odm/odm_requests.py
-    import json
     if options is None:
         options = {
             "auto-boundary": True,
@@ -763,14 +762,13 @@ def new_task(name, project=None, options=None):
         }
     # convert into list with "name" / "value" dictionaries, suitable for ODM
     options_list = [{"name": k, "value": v} for k, v in options.items()]
-    #print("OPTIONS",options)
     data = {
         "partial": True,
         "name": name,
         "options": options
     }
 
-    res = call_api(f"/projects/{project_id}/tasks/", data=data)
+    res = call_api(f"/projects/{project}/tasks/", data=data)
     if res.status_code == 200:
         task = res.json()
         return res.json()["id"]
