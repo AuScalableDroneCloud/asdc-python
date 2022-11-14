@@ -530,7 +530,6 @@ def create_links(src='/mnt/project', dest=project_dir):
     audience = auth.settings["api_audience"]
     if auth.access_token:
         #Can use authenticated API for each mounted project
-        url = f"{audience}/plugins/asdc/projects/{PID}/gettasks"
         jsondata = None
     else:
         #Use the public API, requires valid username, returns all projects
@@ -547,8 +546,8 @@ def create_links(src='/mnt/project', dest=project_dir):
         if jsondata:
             data = jsondata[PID]
         else:
-            #response = requests.get(url, timeout=10)
-            response = call_api(url) #Use authenticated endpoint
+            #Use authenticated endpoint
+            response = call_api(f"{audience}/plugins/asdc/projects/{PID}/gettasks")
             data = response.json()
         if not "name" in data:
             print("Unexpected response: ", data)
