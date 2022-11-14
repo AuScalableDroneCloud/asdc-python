@@ -161,7 +161,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
             print("ERROR, something went wrong")
     return filename
 
-def download_asset(filename, project=None, task=None, overwrite=False, progress=True):
+def download_asset(filename, dest=None, project=None, task=None, overwrite=False, progress=True):
     """
     Call WebODM API endpoint to download an asset file
 
@@ -169,6 +169,8 @@ def download_asset(filename, project=None, task=None, overwrite=False, progress=
     ----------
     filename: str
         asset filename to download
+    dest: str
+        destination filename, if omitted will use source filename
     project: int
         project ID
     task: str
@@ -180,12 +182,12 @@ def download_asset(filename, project=None, task=None, overwrite=False, progress=
         #Using the default selections
         project, task = get_selection()
 
-    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite, progress=progress)
+    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', filename=dest, overwrite=overwrite, progress=progress)
     #If it failed, try the raw asset url
     if res is None:
         #Raw asset download, needed for custom assets, but requires full path:
         #eg: orthophoto.tif => odm_orthophoto/odm_orthophoto.tif
-        res = download(f'/projects/{project}/tasks/{task}/assets/{filename}', overwrite=overwrite, progress=progress)
+        res = download(f'/projects/{project}/tasks/{task}/assets/{filename}', filename=dest, overwrite=overwrite, progress=progress)
     return res
 
 def export_asset(asset, params, project=None, task=None, overwrite=False, progress=True):
