@@ -83,7 +83,7 @@ def call_api(url, data=None, headersAPI=None, content_type='application/json', t
     #print(r.text)
     return r
 
-def download(url, filename=None, block_size=8192, data=None, overwrite=False, throw=False, prefix=auth.settings["token_prefix"]):
+def download(url, filename=None, block_size=8192, data=None, overwrite=False, throw=False, progress=True, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint to download a file
 
@@ -97,6 +97,8 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         size of chunks to download
     throw: bool
         throw exception on http errors, default: False
+    progress: bool
+        Show progress bar
 
     Returns
     -------
@@ -122,10 +124,11 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         return filename
 
     #Progress bar
-    if auth.is_notebook():
-        from tqdm.notebook import tqdm
-    else:
-        import tqdm
+    if progress:
+        if auth.is_notebook():
+            from tqdm.notebook import tqdm
+        else:
+            import tqdm
 
     # NOTE the stream=True parameter below
     #https://stackoverflow.com/a/16696317
@@ -139,21 +142,26 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         return None
     else:
         total_size_in_bytes= int(r.headers.get('content-length', 0))
-        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+        got_bytes = 0
+        if progress:
+            progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
         r.raise_for_status()
         with open(filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=block_size):
-                progress_bar.update(len(chunk))
+                got_bytes += len(chunk)
+                if progress:
+                    progress_bar.update(len(chunk))
                 # If you have chunk encoded response uncomment if
                 # and set chunk_size parameter to None.
                 #if chunk:
                 f.write(chunk)
-        progress_bar.close()
-        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+        if progress:
+            progress_bar.close()
+        if total_size_in_bytes != 0 and got_bytes != total_size_in_bytes:
             print("ERROR, something went wrong")
     return filename
 
-def download_asset(filename, project=None, task=None, overwrite=False):
+def download_asset(filename, project=None, task=None, overwrite=False, progress=True):
     """
     Call WebODM API endpoint to download an asset file
 
@@ -165,20 +173,22 @@ def download_asset(filename, project=None, task=None, overwrite=False):
         project ID
     task: str
         task ID
+    progress: bool
+        Show progress bar
     """
     if project is None or task is None:
         #Using the default selections
         project, task = get_selection()
 
-    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite)
+    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', overwrite=overwrite, progress=progress)
     #If it failed, try the raw asset url
     if res is None:
         #Raw asset download, needed for custom assets, but requires full path:
         #eg: orthophoto.tif => odm_orthophoto/odm_orthophoto.tif
-        res =  download(f'/projects/{project}/tasks/{task}/assets/{filename}', overwrite=overwrite)
+        res = download(f'/projects/{project}/tasks/{task}/assets/{filename}', overwrite=overwrite, progress=progress)
     return res
 
-def export_asset(asset, params, project=None, task=None, overwrite=False):
+def export_asset(asset, params, project=None, task=None, overwrite=False, progress=True):
     """
     Call WebODM API endpoints to export a converted asset file
     The existing asset file can be downloaded with the /download/fn endpoint
@@ -197,6 +207,8 @@ def export_asset(asset, params, project=None, task=None, overwrite=False):
         project ID
     task: str
         task ID
+    progress: bool
+        Show progress bar
 
 
     data {
@@ -259,11 +271,11 @@ def export_asset(asset, params, project=None, task=None, overwrite=False):
         else:
             print('.. done.')
             filename = data['filename']
-            res = download(f'/workers/get/{worker_id}?filename={filename}', filename, overwrite=overwrite)
+            res = download(f'/workers/get/{worker_id}?filename={filename}', filename, overwrite=overwrite, progress=progress)
 
     return res
 
-def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["token_prefix"], **kwargs):
+def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False, prefix=auth.settings["token_prefix"], **kwargs):
     """
     Call an API endpoint to upload a file
 
@@ -273,6 +285,10 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
         endpoint url, either full uri or path / which will be appended to "api_audience" url from settings
     filepath: str
         file path to open and upload
+    dest: str
+        destination filename, if omitted will use source
+    progress: bool
+        Show progress bar
     block_size: int
         size of chunks to upload
     throw: bool
@@ -288,10 +304,11 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
         url = auth.settings["api_audience"] + url
 
     #Progress bar
-    if auth.is_notebook():
-        from tqdm.notebook import tqdm
-    else:
-        import tqdm
+    if progress:
+        if auth.is_notebook():
+            from tqdm.notebook import tqdm
+        else:
+            import tqdm
 
     #Pass any additional post data in kwargs
     fields = kwargs
@@ -299,18 +316,30 @@ def upload(url, filepath, block_size=8192, throw=False, prefix=auth.settings["to
     #https://stackoverflow.com/a/67726532
     path = pathlib.Path(filepath)
     total_size = path.stat().st_size
-    filename = path.name
+    if dest:
+        filename = dest
+    else:
+        filename = path.name
 
-    with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size) as bar:
+    def upload(bar=None):
         with open(filepath, "rb") as f:
             fields["file"] = (filename, f)
             e = MultipartEncoder(fields=fields)
-            m = MultipartEncoderMonitor(e, lambda monitor: bar.update(monitor.bytes_read - bar.n))
-            headers = {'Content-Type': m.content_type,
+            data = e
+            if bar:
+                m = MultipartEncoderMonitor(e, lambda monitor: bar.update(monitor.bytes_read - bar.n))
+                data = m
+            headers = {'Content-Type': data.content_type,
                        'Authorization': prefix + ' ' + auth.access_token if auth.access_token else ''}
-            return requests.post(url, data=m, headers=headers)
+            return requests.post(url, data=data, headers=headers)
 
-def upload_asset(filename, project=None, task=None):
+    if progress:
+        with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size) as bar:
+            upload(bar)
+    else:
+        upload()
+
+def upload_asset(filename, dest=None, project=None, task=None, progress=True):
     """
     Call WebODM API endpoint to upload an asset file
 
@@ -318,20 +347,39 @@ def upload_asset(filename, project=None, task=None):
     ----------
     filename: str
         asset filename to upload (can include subdir)
+    dest: str
+        asset filename and optional path to upload to,
+        if omitted or contains a path only,
+        will use the source filename
     project: int
         project ID
     task: str
         task ID
+    progress: bool
+        Show progress bar
+
+    Returns
+    -------
+    object
+        http response object
     """
     if project is None or task is None:
         #Using the default selections
         project, task = get_selection()
 
-    #Split path and filename
-    path, filename = os.path.split(filename)
-    return upload(f'/projects/{project}/tasks/{task}/assets/{path}', filename)
+    #Split path and filename in dest
+    destpath = ""
+    destfile = ""
+    #Use provided dest path & filename
+    if dest:
+        destpath, destfile = os.path.split(dest)
+    #Use the filename from the source path
+    if not len(destfile):
+        path, fn = os.path.split(filename)
+        destfile = fn
+    return upload(f'/projects/{project}/tasks/{task}/assets/{destpath}', filename, destfile, progress=progress)
 
-def upload_image(filename, project, task):
+def upload_image(filename, project, task, progress=True):
     """
     Call WebODM API endpoint to upload a source image file
 
@@ -343,12 +391,19 @@ def upload_image(filename, project, task):
         project ID
     task: str
         task ID
+    progress: bool
+        Show progress bar
+
+    Returns
+    -------
+    object
+        http response object
     """
     if project is None or task is None:
         #Using the default selections
         project, task = get_selection()
 
-    return upload(f'/projects/{project}/tasks/{task}/upload/', filename)
+    return upload(f'/projects/{project}/tasks/{task}/upload/', filename, progress=progress)
 
 
 def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
