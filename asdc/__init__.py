@@ -139,6 +139,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         r = requests.get(url, headers=headersAPI, stream=True)
     #with requests.get(url, headers=headersAPI, stream=True) as r:
     if r.status_code >= 400:
+        print("Error response:", r, url)
         return None
     else:
         total_size_in_bytes= int(r.headers.get('content-length', 0))
@@ -767,12 +768,15 @@ def new_task(name, project=None, options=None):
     data = {
         "partial": True,
         "name": name,
-        "options": options
+        "options": options_list
     }
 
-    res = call_api(f"/projects/{project}/tasks/", data=data)
-    if res.status_code == 200:
-        task = res.json()
-        return res.json()["id"]
-    return None
+    url = f"/projects/{project}/tasks/"
+    res = call_api(url, data=data)
+    if res.status_code >= 400:
+        print("Error response:", res, url)
+        return None
+    task = res.json()
+    return res.json()["id"]
+
 
