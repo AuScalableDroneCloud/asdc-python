@@ -732,4 +732,47 @@ projects = get_projects()
 task_dict = {}
 project_dict = {}
 
+def new_task(name, project=None, options=None):
+    """
+    Create a new task, "partial" enabled to allow later upload of images
+
+    Parameters
+    ----------
+    name: str
+        Name of the new task
+    project: int
+        Proejct id, if omitted will use current selection
+    options: dict
+        ODM processing options to set on the task
+
+    eg:
+    #Create a new task and add an orthophoto image
+    task_id = new_task("Processed orthophoto")
+    asdc.upload_asset("myfile.tif", dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
+    """
+
+    if project is None:
+        #Using the default selections
+        project, task = get_selection()
+    # https://github.com/localdevices/odk2odm/blob/main/odk2odm/odm_requests.py
+    import json
+    if options is None:
+        options = {
+            "auto-boundary": True,
+            "dsm": True
+        }
+    # convert into list with "name" / "value" dictionaries, suitable for ODM
+    options_list = [{"name": k, "value": v} for k, v in options.items()]
+    #print("OPTIONS",options)
+    data = {
+        "partial": True,
+        "name": name,
+        "options": options
+    }
+
+    res = call_api(f"/projects/{project_id}/tasks/", data=data)
+    if res.status_code == 200:
+        task = res.json()
+        return res.json()["id"]
+    return None
 
