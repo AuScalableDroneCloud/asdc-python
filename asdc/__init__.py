@@ -83,7 +83,7 @@ def call_api(url, data=None, headersAPI=None, content_type='application/json', t
     #print(r.text)
     return r
 
-def download(url, filename=None, block_size=8192, data=None, overwrite=False, throw=False, progress=True, prefix=auth.settings["token_prefix"]):
+def download(url, filename=None, block_size=8192, data=None, overwrite=False, throw=False, progress=True, silent=False, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint to download a file
 
@@ -120,7 +120,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         filename = url.split('/')[-1]
 
     if not overwrite and os.path.exists(filename):
-        print("File exists: " + filename)
+        if not silent: print("File exists: " + filename)
         return filename
 
     #Progress bar
@@ -139,7 +139,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         r = requests.get(url, headers=headersAPI, stream=True)
     #with requests.get(url, headers=headersAPI, stream=True) as r:
     if not r.ok:
-        print("Error response:", r, url)
+        if not silent: print("Error response:", r, url)
         return None
     else:
         total_size_in_bytes= int(r.headers.get('content-length', 0))
@@ -183,7 +183,7 @@ def download_asset(filename, dest=None, project=None, task=None, overwrite=False
         #Using the default selections
         project, task = get_selection()
 
-    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', filename=dest, overwrite=overwrite, progress=progress)
+    res = download(f'/projects/{project}/tasks/{task}/download/{filename}', filename=dest, overwrite=overwrite, progress=progress, silent=True)
     #If it failed, try the raw asset url
     if res is None:
         #Raw asset download, needed for custom assets, but requires full path:
@@ -647,23 +647,28 @@ def selection_info():
         if selected['task']:
             print(f"{baseurl}/projects/{selected['project']}/tasks/{selected['task']}")
 
-def task_select(filtered=False):
-    """
-    Display project and task selection widgets
-    """
-    if not auth.is_notebook():
-        return
-    import ipywidgets as widgets
-    from IPython.display import display
+def run_all_button():
+    #Run-all below button, requires ipylab
+    try:
+        from ipylab import JupyterFrontEnd
+        import ipywidgets as widgets
+        app = JupyterFrontEnd()
+        def run_all(ev):
+            app.commands.execute('notebook:run-all-below')
 
-    #Project/task selection widget
+        button = widgets.Button(description="Run all below", icon='play')
+        button.on_click(run_all)
+        return button
+    except:
+        #Nonessential feature, ignore errors
+        return None
+
+def get_task_project_options(filtered=False):
     pdata = project_tasks(filtered=filtered)
     if not pdata:
-        return
+        return None, None, None, None
     pselections = []
     tselections = {}
-    #init_p = None
-    #init_t = None
     #If no initial selection, just use any active saved selection
     global selected
     init_p, init_t = get_selection()
@@ -697,6 +702,53 @@ def task_select(filtered=False):
         print("Task not found: ", init_t)
         init_t = None
 
+    return pselections, tselections, init_p, init_t
+
+def project_select(filtered=False):
+    """
+    Display project selection widget only
+    """
+    if not auth.is_notebook():
+        return
+    import ipywidgets as widgets
+    from IPython.display import display
+
+    #Project selection widget
+    pselections, tselections, init_p, init_t = get_task_project_options(filtered)
+    if not pselections: return
+
+    def select_project(project):
+        global selected
+        selected["project"] = projectW.value
+        if project:
+            baseurl = settings['api_audience'] 
+            print(f"{baseurl}/projects/{selected['project']}/")
+
+    projectW = widgets.Dropdown(options=pselections, value=init_p)
+    init = pselections[0][1]
+    if projectW.value:
+        init = projectW.value
+    i = widgets.interactive(select_project, project=projectW)
+    #Run-all below button, requires ipylab
+    button = run_all_button()
+    if button:
+        display(i, button)
+    else:
+        display(i)
+
+def task_select(filtered=False):
+    """
+    Display project and task selection widgets
+    """
+    if not auth.is_notebook():
+        return
+    import ipywidgets as widgets
+    from IPython.display import display
+
+    #Project/task selection widget
+    pselections, tselections, init_p, init_t = get_task_project_options(filtered)
+    if not pselections: return
+
     def select_task(task):
         global selected
         #print(projectW.value, task)
@@ -715,20 +767,11 @@ def task_select(filtered=False):
     j = widgets.interactive(select_task, task=taskW)
     i = widgets.interactive(select_project, project=projectW)
     #Run-all below button, requires ipylab
-    try:
-        from ipylab import JupyterFrontEnd
-        import ipywidgets as widgets
-        app = JupyterFrontEnd()
-        def run_all(ev):
-            app.commands.execute('notebook:run-all-below')
-
-        button = widgets.Button(description="Run all below", icon='play')
-        button.on_click(run_all)
+    button = run_all_button()
+    if button:
         display(i, j, button)
-    except:
-        #Nonessential feature, ignore errors
+    else:
         display(i, j)
-        pass
 
 # Active selections
 selected = {"project": None, "task" : None}
