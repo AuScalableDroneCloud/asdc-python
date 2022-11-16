@@ -147,7 +147,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         total_size_in_bytes= int(r.headers.get('content-length', 0))
         got_bytes = 0
         if progress:
-            progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+            progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True, leave=False)
         r.raise_for_status()
         with open(filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=block_size):
@@ -324,7 +324,7 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
     else:
         filename = path.name
 
-    def upload(bar=None):
+    def do_upload(bar=None):
         with open(filepath, "rb") as f:
             fields["file"] = (filename, f)
             e = MultipartEncoder(fields=fields)
@@ -337,10 +337,10 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
             return requests.post(url, data=data, headers=headers)
 
     if progress:
-        with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size) as bar:
-            return upload(bar)
+        with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size, leave=False) as bar:
+            return do_upload(bar)
     else:
-        return upload()
+        return do_upload()
 
 def upload_asset(filename, dest=None, project=None, task=None, progress=True):
     """
