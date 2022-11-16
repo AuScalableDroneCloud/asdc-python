@@ -57,6 +57,7 @@ import datetime
 import time
 import sys
 from pathlib import Path
+import jwt
 
 baseurl = ''      #Base jupyterhub url
 access_token = '' #Store the received token here
@@ -325,8 +326,11 @@ def _send(mode='iframe'):
     if (now - ts < 10000) {
         var mode = "$MODE";
         var now = new Date().valueOf();
-        if (window.token) console.log("Token expired?: " + window.token['id_token']['exp']*1000 + ' > ' + now);
-        if (window.token && window.token['id_token']['exp']*1000 > now) {
+        var tokens = window.token['access_token'].split(".");
+        var access = JSON.parse(atob(tokens[1]));
+        if (window.token) console.log("ID Token expired?: " + (window.token['id_token']['exp']*1000 <= now));
+        if (window.token) console.log("Access Token expired?: " + (access['exp']*1000 <= now));
+        if (window.token && window.token['id_token']['exp']*1000 > now && access['exp']*1000 > now) {
             //Use saved token on client side
             postTokenGET_$PORT(window.token, true); //Pass re-use flag to skip verification
         } else {
@@ -419,14 +423,19 @@ async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
 
     #Have a token already? Check if it is expired
     if token_data:
-        ts = int(token_data['id_token']['exp'])
-        dt = datetime.datetime.fromtimestamp(ts)
+        #Need to decode the access_token as it seems it expires earlier than id_token
+        access = jwt.decode(token_data['access_token'], options={"verify_signature": False})
+        its = int(token_data['id_token']['exp'])
+        idt = datetime.datetime.fromtimestamp(its)
+        ats = int(access['exp'])
+        adt = datetime.datetime.fromtimestamp(ats)
         now = datetime.datetime.now(tz=None)
-        #print(dt.strftime("%d/%m/%Y %H:%M:%S"))
-        #print(now.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("ID expires:", idt.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("Access expires:", adt.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("Now:", now.strftime("%d/%m/%Y %H:%M:%S"))
 
         #Renew expired token
-        if dt <= now:
+        if idt <= now or adt <= now:
             token_data = None
 
     #Setup the server, listener and send the auth request
