@@ -16,6 +16,8 @@ import json
 import os
 import re
 import pathlib
+import shutil
+import zipfile
 from slugify import slugify
 import requests
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
@@ -179,9 +181,8 @@ def download_asset(filename, dest=None, project=None, task=None, overwrite=False
     progress: bool
         Show progress bar
     """
-    if project is None or task is None:
-        #Using the default selections
-        project, task = get_selection()
+    #Use the default selections unless arg passed
+    project, task = get_selection(project, task)
 
     res = download(f'/projects/{project}/tasks/{task}/download/{filename}', filename=dest, overwrite=overwrite, progress=progress, silent=True)
     #If it failed, try the raw asset url
@@ -246,9 +247,8 @@ def export_asset(asset, params, project=None, task=None, overwrite=False, progre
     <option value="csv">CSV</option>
 
     """
-    if project is None or task is None:
-        #Using the default selections
-        project, task = get_selection()
+    #Use the default selections unless arg passed
+    project, task = get_selection(project, task)
 
     #First post to /export, then get from the task
     res = call_api(f'/projects/{project}/tasks/{task}/{asset}/export', data=params)
@@ -366,9 +366,8 @@ def upload_asset(filename, dest=None, project=None, task=None, progress=True):
     object
         http response object
     """
-    if project is None or task is None:
-        #Using the default selections
-        project, task = get_selection()
+    #Use the default selections unless arg passed
+    project, task = get_selection(project, task)
 
     #Split path and filename in dest
     destpath = ""
@@ -402,9 +401,8 @@ def upload_image(filename, project, task, progress=True):
     object
         http response object
     """
-    if project is None or task is None:
-        #Using the default selections
-        project, task = get_selection()
+    #Use the default selections unless arg passed
+    project, task = get_selection(project, task)
 
     return upload(f'/projects/{project}/tasks/{task}/upload/', filename, progress=progress)
 
@@ -780,14 +778,20 @@ projects = get_projects()
 task_dict = {}
 project_dict = {}
 
-def get_selection():
+def get_selection(project=None, task=None):
     """
     Get first selected project/task
     If none selected, raise exception to stop execution
+
+    (If project or task are passed these will override selections)
     """
     global selected, projects, tasks
     init_p = selected['project']
     init_t = selected['task']
+    #Use params instead if provided
+    #(used from other functions with optional project/task params)
+    if project is not None: init_p = project
+    if task is not None: init_t = task
     #Use the first selection passed in env, or interactively select if none
     if not init_p or not init_t:
         raise(Exception("Please select a task to continue..."))
@@ -798,6 +802,8 @@ def get_selection():
 def new_task(name, project=None, options=None):
     """
     Create a new task, "partial" enabled to allow later upload of images
+    This is suited for creating a task that will use ODM to process a set of input images
+    For pre-processed data, use the import_task() function instead.
 
     Parameters
     ----------
@@ -814,9 +820,9 @@ def new_task(name, project=None, options=None):
     asdc.upload_asset("myfile.tif", dest="odm_orthophoto/odm_orthophoto.tif", task=task_id)
     """
 
-    if project is None:
-        #Using the default selections
-        project, task = get_selection()
+    #Use the default selections unless arg passed
+    project, task = get_selection(project)
+
     # https://github.com/localdevices/odk2odm/blob/main/odk2odm/odm_requests.py
     if options is None:
         options = {
@@ -838,5 +844,55 @@ def new_task(name, project=None, options=None):
         return None
     task = res.json()
     return res.json()["id"]
+
+def import_task(name, path=None, dest=None, project=None):
+    """
+    Creates a new task using the import API
+    Files in "path" are zipped before being uploaded to the new task
+    
+    Parameters
+    ==========
+    name: str
+        Name of the new task
+    path: str/list
+        if path=None, an empty files.json will be created and sent
+        if path is a directory the entire directory will be sent
+        if path is a single file, just this file will be sent
+    """
+    #Using the default selections
+    project, _ = get_selection(project)
+    if path is None:
+        path = 'files.json'
+        with open(path, 'w') as f:
+            f.write('{"custom_assets" : []}')
+
+    #Zip the files
+    outfn = "/tmp/task.zip"
+    if os.path.exists(outfn):
+        os.remove(outfn)
+    if os.path.isdir(path):
+        #We could use os.walk with zipfile below, but this is easier
+        zfile = shutil.make_archive('/tmp/task', 'zip', base_dir = path)
+    else:
+        with zipfile.ZipFile(outfn, "w" ) as zfile:
+            if isinstance(path, str):
+                path = [path]
+
+            for f in path:
+                if dest:
+                    zfile.write(f, os.path.join(dest, os.path.basename(path)), zipfile.ZIP_DEFLATED)
+                else:
+                    zfile.write(f, compress_type=zipfile.ZIP_DEFLATED)
+
+    #NOTE: Importing custom assets in zip will not add entries in files.json
+    # until fixed, better to add them to the task with upload_asset
+    
+    url = f"/projects/{project}/tasks/import"
+    res = upload(url, outfn, name=name)
+    if not res.ok:
+        print("Error response:", res, url)
+
+    task = res.json()
+    return task["id"]
 
 
