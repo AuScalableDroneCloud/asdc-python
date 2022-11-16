@@ -325,15 +325,22 @@ def _send(mode='iframe'):
     var ts = new Date(document.getElementById('$ID').dataset.timestamp * 1000);
     if (now - ts < 10000) {
         var mode = "$MODE";
-        var now = new Date().valueOf();
-        var tokens = window.token['access_token'].split(".");
-        var access = JSON.parse(atob(tokens[1]));
-        if (window.token) console.log("ID Token expired?: " + (window.token['id_token']['exp']*1000 <= now));
-        if (window.token) console.log("Access Token expired?: " + (access['exp']*1000 <= now));
-        if (window.token && window.token['id_token']['exp']*1000 > now && access['exp']*1000 > now) {
-            //Use saved token on client side
-            postTokenGET_$PORT(window.token, true); //Pass re-use flag to skip verification
-        } else {
+        if (window.token) {
+            var now = new Date().valueOf();
+            var tokens = window.token['access_token'].split(".");
+            var access = JSON.parse(atob(tokens[1]));
+            console.log("ID Token expired?: " + (window.token['id_token']['exp']*1000 <= now));
+            console.log("Access Token expired?: " + (access['exp']*1000 <= now));
+            if (window.token['id_token']['exp']*1000 > now && access['exp']*1000 > now) {
+                //Use saved token on client side
+                postTokenGET_$PORT(window.token, true); //Pass re-use flag to skip verification
+            } else {
+                //Clear expired tokens
+                window.token = null;
+            }
+        }
+
+        if (!window.token) {
             var html = '';
             if (mode == 'popup') {
                 window.open("$URL");
