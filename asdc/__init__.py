@@ -663,6 +663,8 @@ def run_all_button():
         return None
 
 def get_task_project_options(filtered=False):
+    #This populates the available project/tasks to select from
+    #and the default / currently selected project and task
     pdata = project_tasks(filtered=filtered)
     if not pdata:
         return None, None, None, None
@@ -670,7 +672,8 @@ def get_task_project_options(filtered=False):
     tselections = {}
     #If no initial selection, just use any active saved selection
     global selected
-    init_p, init_t = get_selection()
+    #Don't raise if no selection or will stop the widgets being displayed
+    init_p, init_t = get_selection(exception=False)
     for p in pdata:
         pselections += [(str(p["id"]) + ": " + p["name"], p["id"])]
         if not init_p and (filtered or p["selected"]):
@@ -779,7 +782,7 @@ projects = get_projects()
 task_dict = {}
 project_dict = {}
 
-def get_selection(project=None, task=None):
+def get_selection(project=None, task=None, exception=True):
     """
     Get first selected project/task
     If none selected, raise exception to stop execution
@@ -793,9 +796,12 @@ def get_selection(project=None, task=None):
     #(used from other functions with optional project/task params)
     if project is not None: init_p = project
     if task is not None: init_t = task
+
     #Use the first selection passed in env, or interactively select if none
     if not init_p or not init_t:
-        raise(Exception("Please select a task to continue..."))
+        if not exception:
+            return None, None
+        raise(SystemExit("Please select a task to continue..."))
 
     #Return the first selection
     return init_p, init_t
