@@ -683,7 +683,6 @@ def get_task_project_options(filtered=False):
             tselections[p["id"]] += [("Task #" + t["id"] if t["name"] is None else t["name"] ,  t["id"])]
             if not init_t and (filtered or t["selected"]):
                 init_t = t["id"]
-                init_p = p["id"] #Ensure matching project selected too
 
     #Ensure any passed selections are valid (found in lists)
     found_p = False
@@ -693,6 +692,7 @@ def get_task_project_options(filtered=False):
             for t in tselections[p[1]]:
                 if t[1] == init_t:
                     found_t = True
+                    init_p = p[1] #Ensure matching project selected too 
                     break
         if p[1] == init_p:
             found_p = True
@@ -762,7 +762,7 @@ def task_select(filtered=False):
             taskW.options = tselections[project]
 
     projectW = widgets.Dropdown(options=pselections, value=init_p)
-    init = pselections[0][1]
+    init = pselections[0][1] #Default to the first available
     if projectW.value:
         init = projectW.value
     taskW = widgets.Dropdown(options=tselections[init], value=init_t)
