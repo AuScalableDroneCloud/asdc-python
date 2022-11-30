@@ -68,7 +68,7 @@ _server = None     #Server to receive token
 
 #Settings, to be provided before use
 settings = {
-    "default_baseurl": 'http://localhost:8888/user-redirect',
+    "default_baseurl": 'http://localhost:8888/',
     "api_audience": 'https://MYSITE/api',
     "api_client_id": '',
     "api_device_client_id": '',
@@ -108,7 +108,9 @@ def setup(config=None):
         if os.path.exists('.env'):
             load_dotenv()
         try:
-            settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888') + '/user-redirect'
+            settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888')
+            if not "localhost" in settings["default_baseurl"]:
+                settings["default_baseurl"] += '/user-redirect'
             settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'http://localhost:8000/api')
             settings["api_client_id"] = os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
             settings["api_device_client_id"] = os.getenv('JUPYTER_OAUTH2_DEVICE_CLIENT_ID', '')
@@ -147,7 +149,7 @@ async def check_server(url):
     else:
         logging.info("Server responded OK: {} {}\n{}".format(r.status_code, r.reason, r.text))
 
-def _serve():
+async def _serve():
     """
     Listen for the token passed by browser on client side
     (Tried using websockets here, but wss: connections are not handled by jupyter-server-proxy)
@@ -158,6 +160,10 @@ def _serve():
     import tornado.ioloop
     import tornado.web
     import tornado.httpserver
+
+    #Stop any existing server
+    if _server:
+        await stop_server()
 
     def set_token(data, verify=True):
         global nonce, token_data
@@ -226,7 +232,10 @@ def _listener():
         import os
         #Get from env
         server_url = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888')
-        baseurl = server_url + '/user-redirect'
+        if not "localhost" in server_url:
+            baseurl = server_url + '/user-redirect'
+        else:
+            baseurl = server_url;
         logging.info("Base url: ", baseurl)
 
     from IPython.display import display, HTML
@@ -340,17 +349,27 @@ def _send(mode='iframe'):
             }
         }
 
+        function show_frame() {
+            var frames = document.querySelectorAll('.asdc-oauth-frame');
+            if (frames.length) {
+                frames.forEach(e => e.style.height = '300px');
+                //Try popup
+                window.open("$URL");
+            }
+        }
+
         if (!window.token) {
-            var html = '';
+            var alt = '(Automatic authentication via $MODE processing, <a href="$URL" target="_blank" rel="opener">click here</a> to login manually)';
             if (mode == 'popup') {
                 window.open("$URL");
-                html += '(Authentication window may not appear if you have a popup blocker, <a href="$URL" target="_blank" rel="opener">Click here to login</a> instead)';
+                html = alt;
             } else if (mode == 'iframe') {
-                html = '<iframe class="asdc-oauth-frame" src="$URL" style="width: 400px; height: 0px; border: 0;">';
+                html = '<iframe class="asdc-oauth-frame" src="$URL" style="width: 400px; height: 0px; border: 0;"></iframe><br>' + alt;
+                setTimeout(show_frame, 5000); //Show the frame if still there after 5 seconds
             } else if (mode == 'iframe_debug') {
-                html = '<iframe src="$URL" width="400px" height="300px" style="border:1px solid #ccc;">';
+                html = '<iframe src="$URL" width="400px" height="300px" style="border:1px solid #ccc;"></iframe><br>' + alt;
             } else if (mode == 'link') {
-                html += '<h3><a href="$URL" target="_blank" rel="opener">Click here to login</a></h3>';
+                html = '<h3><a href="$URL" target="_blank" rel="opener">Click here to login</a></h3>';
             }
             document.getElementById('$ID').innerHTML = html;
         }
@@ -447,7 +466,7 @@ async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
 
     #Setup the server, listener and send the auth request
     if not token_data:
-        _serve()
+        await _serve()
         _listener()
         _send(mode)
 
@@ -467,6 +486,7 @@ async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
             sys.stdout.flush()
     
         if not token_data:
+            await stop_server()
             raise(Exception("Timed out awaiting access token! "))
         else:
             print('.. success.')
