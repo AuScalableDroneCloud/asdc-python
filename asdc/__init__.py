@@ -587,13 +587,16 @@ def create_links(src='/mnt/project', dest=project_dir):
 def get_tasks():
     global selected, tasks
     tasks = list(filter(None, re.split('[, ]+', os.getenv("ASDC_TASKS", ""))))
+    inputs = read_inputs()
+    tasks = inputs["tasks"]
     if len(tasks) and not selected["task"]:
         selected["task"] = tasks[0]
     return tasks
 
 def get_projects():
     global selected, projects
-    projects = [int(p) for p in list(filter(None, re.split('\W+', os.getenv("ASDC_PROJECTS", ""))))]
+    inputs = read_inputs()
+    projects = inputs["projects"]
     if len(projects) and not selected["project"]:
         selected["project"] = projects[0]
     return projects
@@ -902,4 +905,14 @@ def import_task(name, path=None, dest=None, project=None):
     task = res.json()
     return task["id"]
 
+def snapshot(source_dir, project_id, task_id):
+    """
+    Take a snapshot of the current pipeline code and store it as a zip file
+    with the provided task
+    """
+    #TBD
+    #https://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
+    #import shutil
+    #shutil.make_archive(output_filename, 'zip', dir_name)
+    pass
 

@@ -4,6 +4,7 @@ import tornado.httpclient
 import tornado.httputil
 import sys
 import os
+from slugify import slugify
 
 root_doc = """
 <!DOCTYPE html>
@@ -41,12 +42,12 @@ import os
 
 await asdc.auth.connect()
 
-project = '{PID}'
-task = '{TID}'
+project_id = '{PID}'
+task_id = '{TID}'
 filename = '{ASSET}'
 pathlib.Path(task).mkdir(parents=True, exist_ok=True)
 os.chdir(task)
-asdc.download_asset(project, task, filename)
+asdc.download_asset(project_id, task_id, filename)
 
 # + inputHidden=false outputHidden=false
 if "orthophoto" in filename:
@@ -95,11 +96,26 @@ class ImportHandler(tornado.web.RequestHandler):
         with open(str(Path.home() / filename), 'w') as f:
             f.write(py_base.format(PID=project, TID=task, ASSET=asset))
 
+        import utils
+        utils.write_inputs(projects=[project], tasks=[task])
+
         script = ""
         if redirect == 'yes':
-            script = 'window.location.href="/user-redirect/lab/tree/{FN}"'.format(FN=filename)
+            #script = 'window.location.href="/user-redirect/lab/tree/{FN}"'.format(FN=filename)
+            self.redirect(f"/user-redirect/lab/tree/{filename}")
 
-        self.write(import_doc.format(FN=filename, script=script))
+        #self.write(import_doc.format(FN=filename, script=script))
+        self.write(import_doc.format(FN=filename, script=""))
+
+class BrowseHandler(tornado.web.RequestHandler):
+    def get(self):
+        #Redirects to the mounted project and task folder
+        project = self.get_argument('project')
+        task = self.get_argument('task')
+        projdir = str(PID) + '_' + slugify(project)
+        taskdir = str(idx) + '_' + slugify(task) # + '_(' + str(t['id'])[0:8] + ')'
+
+        self.redirect(f"/user-redirect/lab/tree/projects/{projdir}/{taskdir}")
 
 # Following page HTML and Javascript from ipyauth
 # https://gitlab.com/oscar6echo/ipyauth
@@ -262,6 +278,7 @@ if __name__ == "__main__":
     app = tornado.web.Application([
         (r"/", RootHandler),
         (r"/import", ImportHandler),
+        (r"/browse", BrowseHandler),
         (r"/callback", CallbackHandler)
     ])
     app.listen(sys.argv[1])
