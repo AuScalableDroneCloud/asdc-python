@@ -13,6 +13,10 @@ enable_pretty_logging()
 import logging
 logger = logging.getLogger("asdc-server")
 
+from pathlib import Path
+import utils
+import subprocess
+
 root_doc = """
 <!DOCTYPE html>
 <html lang="en">
@@ -95,10 +99,6 @@ class RequirementsHandler(tornado.web.RequestHandler):
         path = self.get_argument('path')
         redirect = self.get_argument('next', '/lab/tree/')
 
-        import subprocess
-        import sys
-        from pathlib import Path
-
         if os.path.exists(Path.home() / path / "requirements.txt"):
             subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(Path.home() / path))
 
@@ -115,7 +115,6 @@ class RedirectHandler(tornado.web.RequestHandler):
         redirect = self.get_argument('path')
         print(projects,tasks,redirect)
 
-        import utils
         utils.write_inputs(projects=projects, tasks=tasks)
 
         return self.redirect(f"/user-redirect/lab/tree/{redirect}")
@@ -132,11 +131,9 @@ class ImportHandler(tornado.web.RequestHandler):
         filename = 'task_{0}.py'.format(task)
 
         # Write the python script / notebook
-        from pathlib import Path
         with open(str(Path.home() / filename), 'w') as f:
             f.write(py_base.format(PID=project, TID=task, ASSET=asset))
 
-        import utils
         utils.write_inputs(projects=[project], tasks=[task])
 
         script = ""
