@@ -4,7 +4,14 @@ import tornado.httpclient
 import tornado.httputil
 import sys
 import os
+import re
 from slugify import slugify
+
+#Debug logging
+from tornado.log import enable_pretty_logging
+enable_pretty_logging()
+import logging
+logger = logging.getLogger("asdc-server")
 
 root_doc = """
 <!DOCTYPE html>
@@ -82,9 +89,42 @@ import_doc = """
 </html>
 """
 
+class RequirementsHandler(tornado.web.RequestHandler):
+    def get(self):
+        #Install requirements.txt for a pipeline
+        path = self.get_argument('path')
+        redirect = self.get_argument('next', '/lab/tree/')
+
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        if os.path.exists(Path.home() / path / "requirements.txt"):
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"], cwd=str(Path.home() / path))
+
+        return self.redirect(redirect)
+
+class RedirectHandler(tornado.web.RequestHandler):
+    """
+    Write the updated projects/tasks and redirect to provided notebook
+    """
+    def get(self):
+        logger.info("Handling redirect")
+        projects = [int(p) for p in list(filter(None, re.split('\W+', self.get_argument('projects'))))]
+        tasks = list(filter(None, re.split('[, ]+', self.get_argument('tasks'))))
+        redirect = self.get_argument('path')
+        print(projects,tasks,redirect)
+
+        import utils
+        utils.write_inputs(projects=projects, tasks=tasks)
+
+        return self.redirect(f"/user-redirect/lab/tree/{redirect}")
+
+
 class ImportHandler(tornado.web.RequestHandler):
     def get(self):
         #Write a python module to import the selected task
+        logger.info("Handling import")
         project = self.get_argument('project')
         task = self.get_argument('task')
         asset = self.get_argument('asset', 'orthophoto.tif')
@@ -102,20 +142,44 @@ class ImportHandler(tornado.web.RequestHandler):
         script = ""
         if redirect == 'yes':
             #script = 'window.location.href="/user-redirect/lab/tree/{FN}"'.format(FN=filename)
-            self.redirect(f"/user-redirect/lab/tree/{filename}")
-
-        #self.write(import_doc.format(FN=filename, script=script))
-        self.write(import_doc.format(FN=filename, script=""))
+            return self.redirect(f"/user-redirect/lab/tree/{filename}")
+        else:
+            #self.write(import_doc.format(FN=filename, script=script))
+            return self.write(import_doc.format(FN=filename, script=""))
 
 class BrowseHandler(tornado.web.RequestHandler):
     def get(self):
+        logger.info("Handling filebrowser")
         #Redirects to the mounted project and task folder
-        project = self.get_argument('project')
-        task = self.get_argument('task')
-        projdir = str(PID) + '_' + slugify(project)
-        taskdir = str(idx) + '_' + slugify(task) # + '_(' + str(t['id'])[0:8] + ')'
-
-        self.redirect(f"/user-redirect/lab/tree/projects/{projdir}/{taskdir}")
+        PID = self.get_argument('project')
+        TID = self.get_argument('task')
+        phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan'), 'projects')
+        fn = os.path.join(phome, 'projects.json')
+        if os.path.exists(fn):
+            #    print("LOAD FROM FILE", fn)
+            with open(fn, 'r') as infile:
+                project_dict = json.load(infile)
+                data = project_dict[PID]
+                if not "name" in data:
+                    print("Unexpected response: ", data)
+                    self.redirect(f"/user-redirect/lab/tree/")
+                projname = data["name"]
+                projdir = str(PID) + '_' + slugify(project)
+                for t in data["tasks"]:
+                    if t == TID:
+                        if t["name"] is None:
+                            t["name"] = str(t["id"])
+                        taskdir = str(idx) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
+                        break
+                return self.redirect(f"/user-redirect/lab/tree/projects/{projdir}/{taskdir}")
+        else:
+            #Can't get name data, just use PID and TID, create symlink first
+            tpath = "/mnt/project/{PID}/task/TID"
+            lnpath = os.path.join(phome, str(PID))
+            os.makedirs(lnpath, exist_ok=True)
+            lnpath = os.path.join(lnpath, TID)
+            os.symlink(tpath, lnpath)
+            return self.redirect(f"/user-redirect/lab/tree/projects/{PID}/{TID}")
 
 # Following page HTML and Javascript from ipyauth
 # https://gitlab.com/oscar6echo/ipyauth
@@ -277,6 +341,7 @@ if __name__ == "__main__":
     print("Starting OAuth2 callback server", sys.argv)
     app = tornado.web.Application([
         (r"/", RootHandler),
+        (r"/redirect", RedirectHandler),
         (r"/import", ImportHandler),
         (r"/browse", BrowseHandler),
         (r"/callback", CallbackHandler)
