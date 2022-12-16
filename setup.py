@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="asdc",
-    version='1.0.0',
+    version='1.1.0',
     url='https://github.com/AuScalableDroneCloud/asdc-python',
     author='Owen Kaluza',
     author_email='owen.kaluza@monash.edu',
