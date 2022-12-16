@@ -230,13 +230,7 @@ def _listener():
     global settings, baseurl, port, access_token, token_data
     if not baseurl:
         _check_settings()
-        import os
-        #Get from env
-        server_url = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888')
-        if not "localhost" in server_url:
-            baseurl = server_url + '/user-redirect'
-        else:
-            baseurl = server_url;
+        baseurl = settings["default_baseurl"]
         logging.info("Base url: ", baseurl)
 
     from IPython.display import display, HTML
