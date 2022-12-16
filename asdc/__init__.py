@@ -586,7 +586,6 @@ def create_links(src='/mnt/project', dest=project_dir):
 
 def get_tasks():
     global selected, tasks
-    tasks = list(filter(None, re.split('[, ]+', os.getenv("ASDC_TASKS", ""))))
     inputs = read_inputs()
     tasks = inputs["tasks"]
     if len(tasks) and not selected["task"]:
