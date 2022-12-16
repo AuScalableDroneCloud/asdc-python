@@ -112,7 +112,11 @@ def setup(config=None):
             settings["default_baseurl"] = os.getenv('JUPYTERHUB_URL', 'http://localhost:8888')
             if not "localhost" in settings["default_baseurl"]:
                 settings["default_baseurl"] += '/user-redirect'
-            settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'http://localhost:8000/api')
+                #Using a named server?
+                servername = os.getenv('JUPYTERHUB_SERVER_NAME', '')
+                if len(servername):
+                    settings["default_baseurl"] += '/' + servername
+            settings["api_audience"] = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'https://asdc.cloud.edu.au/api')
             settings["api_client_id"] = os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
             settings["api_device_client_id"] = os.getenv('JUPYTER_OAUTH2_DEVICE_CLIENT_ID', '')
             settings["api_scope"] = os.getenv('JUPYTER_OAUTH2_SCOPE', settings["api_scope"])
