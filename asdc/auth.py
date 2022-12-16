@@ -65,6 +65,7 @@ token_data = ''   #All the received token data
 port = None       #Server port, default is to automatically assign
 nonce = ''        #For verifying token
 _server = None     #Server to receive token
+cookies = None
 
 #Settings, to be provided before use
 settings = {
@@ -637,4 +638,27 @@ def device_connect(config=None, qrcode=True, browser=False, scope=""):
         if "access_token" in token_json:
             access_token = token_json["access_token"]
             break
+
+def local_connect(config=None, mycookies=None):
+    if config is not None:
+        setup(config)
+    _check_settings()
+    #Experimental path for calling ASDC API from local or virtual desktop in python
+    # - open browser (I had issues with chrome in browser_cookie3, had to use firefox)
+    # - go to https://dev.asdc.cloud.edu.au and login
+    # - run this script
+    #You can pass in the cookies if you want to use an alternate method of getting them
+
+    #Get the cookies from default session in firefox/chrome/all browsers
+    global cookies
+    if mycookies:
+        cookies = mycookies
+    else:
+        import browser_cookie3
+        from urllib.parse import urlparse
+        domain = urlparse(settings["api_audience"]).netloc
+        #cookies = browser_cookie3.firefox(domain_name='dev.asdc.cloud.edu.au') #Firefox
+        #cookies = browser_cookie3.chrome(domain_name='dev.asdc.cloud.edu.au') #Chrome
+        #cookies = browser_cookie3.load() #All avail browsers
+        cookies = browser_cookie3.load(domain_name=domain)
 

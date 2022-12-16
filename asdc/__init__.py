@@ -67,14 +67,15 @@ def call_api(url, data=None, headersAPI=None, content_type='application/json', t
         headersAPI = {
         'accept': 'application/json',
         'Content-type': content_type,
-        'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
         }
+        if auth.access_token:
+            headersAPI['Authorization'] = prefix + ' ' + auth.access_token if auth.access_token else ''
     
     #POST if data provided, otherwise GET
     if data:
-        r = requests.post(url, headers=headersAPI, json=data)
+        r = requests.post(url, headers=headersAPI, json=data, cookies=auth.cookies)
     else:
-        r = requests.get(url, headers=headersAPI)
+        r = requests.get(url, headers=headersAPI, cookies=auth.cookies)
     
     #Note: if response is 403 Forbidden {'detail': 'Username not available'}
     # this is because the user hasn't logged in to the main site yet with this auth method
@@ -116,8 +117,9 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
     headersAPI = {
     'accept': 'application/json',
     'Content-type': 'application/octet-stream',
-    'Authorization': prefix + ' ' + auth.access_token if auth.access_token else '',
     }
+    if auth.access_token:
+        headersAPI['Authorization'] = prefix + ' ' + auth.access_token if auth.access_token else ''
 
     if filename is None:
         filename = url.split('/')[-1]
@@ -137,9 +139,9 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
     #https://stackoverflow.com/a/16696317
     #POST if data provided, otherwise GET
     if data:
-        r = requests.post(url, headers=headersAPI, json=data, stream=True)
+        r = requests.post(url, headers=headersAPI, json=data, stream=True, cookies=auth.cookies)
     else:
-        r = requests.get(url, headers=headersAPI, stream=True)
+        r = requests.get(url, headers=headersAPI, stream=True, cookies=auth.cookies)
     #with requests.get(url, headers=headersAPI, stream=True) as r:
     if not r.ok:
         if not silent: print("Error response:", r, url)
@@ -333,9 +335,10 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
             if bar:
                 m = MultipartEncoderMonitor(e, lambda monitor: bar.update(monitor.bytes_read - bar.n))
                 data = m
-            headers = {'Content-Type': data.content_type,
-                       'Authorization': prefix + ' ' + auth.access_token if auth.access_token else ''}
-            return requests.post(url, data=data, headers=headers)
+            headers = {'Content-Type': data.content_type}
+            if auth.access_token:
+                headers['Authorization'] = prefix + ' ' + auth.access_token if auth.access_token else ''
+            return requests.post(url, data=data, headers=headers, cookies=auth.cookies)
 
     if progress:
         with tqdm(desc=filename, total=total_size, unit="B", unit_scale=True, unit_divisor=block_size, leave=False) as bar:
@@ -502,7 +505,7 @@ def load_projects_and_tasks(cache=project_dir):
     user = os.getenv('JUPYTERHUB_USER', '')
     url = auth.settings["api_audience"] + "/plugins/asdc/usertasks?email=" + user
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=10, cookies=auth.cookies)
         jsondata = response.json()
         #Save to ./projects
         #os.makedirs(cache, exist_ok=True)
