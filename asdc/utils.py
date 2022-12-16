@@ -12,6 +12,7 @@ import re
 import os
 from PIL import Image
 import piexif
+
 def resize_image(image_path, resize_to, done=None):
     """
     Provides the image_resize function from WebODM:
@@ -101,34 +102,40 @@ def resize_image(image_path, resize_to, done=None):
 
     return retval
 
+
+def default_inputs():
+    #Get default inputs from env
+    tasks = list(filter(None, re.split('[, ]+', os.getenv("ASDC_TASKS", ""))))
+    projects = [int(p) for p in list(filter(None, re.split('\W+', os.getenv("ASDC_PROJECTS", ""))))]
+    return {"projects" : projects, "tasks" : tasks}
+
 def write_inputs(tasks=[], projects=[]):
     #Write input data from env to inputs.json
+    defaults = default_inputs()
     if not len(tasks):
-        tasks = list(filter(None, re.split('[, ]+', os.getenv("ASDC_TASKS", ""))))
+        tasks = defaults["tasks"]
     if not len(projects):
-        projects = [int(p) for p in list(filter(None, re.split('\W+', os.getenv("ASDC_PROJECTS", ""))))]
-    from pathlib import Path
-    home = Path.home()
-    with open(home / 'inputs.json', 'w') as f:
-        data = {"projects" : projects, "tasks" : tasks}
-        json.dump(data, f)
-        return data
+        projects = defaults["projects"]
+    data = {"projects" : projects, "tasks" : tasks}
+    if "ASDC_INPUT_FILE" in os.environ:
+        with open(os.environ["ASDC_INPUT_FILE"], 'w') as f:
+            json.dump(data, f)
+    return data
 
 def read_inputs():
     #Read the project and task json data for import
-    inputs_dict = {"projects" : [], "tasks" : []}
-    from pathlib import Path
-    home = Path.home()
-    fn = str(home / 'inputs.json')
-    #If file has not been written, then write it and return initial values
-    if not os.path.exists(fn):
-        return write_inputs()
-    #Read json into dict and return
-    with open(fn, 'r') as f:
-        try:
-            inputs_dict = json.load(f)
-        except (json.decoder.JSONDecodeError) as e:
-            pass
-    return inputs_dict
+    inputs_dict = default_inputs()
+    if "ASDC_INPUT_FILE" in os.environ:
+        fn = os.environ["ASDC_INPUT_FILE"]
+        #If file has not been written, then write it and return initial values
+        if not os.path.exists(fn):
+            return write_inputs()
+        #Read json into dict and return
+        with open(fn, 'r') as f:
+            try:
+                inputs_dict = json.load(f)
+            except (json.decoder.JSONDecodeError) as e:
+                pass
 
+    return inputs_dict
 
