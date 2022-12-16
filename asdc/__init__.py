@@ -133,7 +133,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
         if auth.is_notebook():
             from tqdm.notebook import tqdm
         else:
-            import tqdm
+            from tqdm import tqdm
 
     # NOTE the stream=True parameter below
     #https://stackoverflow.com/a/16696317
@@ -314,7 +314,7 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
         if auth.is_notebook():
             from tqdm.notebook import tqdm
         else:
-            import tqdm
+            from tqdm import tqdm
 
     #Pass any additional post data in kwargs
     fields = kwargs
