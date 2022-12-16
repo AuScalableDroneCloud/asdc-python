@@ -508,9 +508,9 @@ def load_projects_and_tasks(cache=project_dir):
         response = requests.get(url, timeout=10, cookies=auth.cookies)
         jsondata = response.json()
         #Save to ./projects
-        #os.makedirs(cache, exist_ok=True)
-        #with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
-        #    json.dump(jsondata, outfile)
+        os.makedirs(cache, exist_ok=True)
+        with open(os.path.join(cache, 'projects.json'), 'w') as outfile:
+            json.dump(jsondata, outfile)
         return jsondata
     except (Exception) as e:
         print("Failed to load user projects from api", e)
@@ -917,4 +917,5 @@ def snapshot(source_dir, project_id, task_id):
     #import shutil
     #shutil.make_archive(output_filename, 'zip', dir_name)
     pass
+
 
