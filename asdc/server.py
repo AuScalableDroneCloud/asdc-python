@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger("asdc-server")
 
 from pathlib import Path
-import utils
+from . import utils
 import subprocess
 
 root_doc = """
