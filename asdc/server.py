@@ -98,9 +98,9 @@ import_doc = """
 baseurl = os.getenv('JUPYTERHUB_URL')
 server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
 #fullurl = f'{baseurl}/{prefix}'
-fullurl = f'{baseurl}hub/user-redirect/'
+fullurl = f'{baseurl}/hub/user-redirect/'
 if len(server):
-    fullurl = f'{baseurl}hub/user-redirect/{server}/'
+    fullurl = f'{baseurl}/hub/user-redirect/{server}/'
 
 class RequirementsHandler(tornado.web.RequestHandler):
     def get(self):
