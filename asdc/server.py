@@ -86,17 +86,21 @@ import_doc = """
 <body>
     <h1>ASDC API Request</h3>
     <p>Request processed for {FN}
-    <a href="{baseurl}/{prefix}lab/tree/{FN}">(Output here)</a>
+    <a href="{fullurl}lab/tree/{FN}">(Output here)</a>
     </p>
 </body>
 
 </html>
 """
 
-prefix = os.getenv('JUPYTERHUB_SERVICE_PREFIX')
+#prefix = os.getenv('JUPYTERHUB_SERVICE_PREFIX')
 #user = os.getenv('JUPYTERHUB_USER')
 baseurl = os.getenv('JUPYTERHUB_URL')
-#server = os.getenv('JUPYTERHUB_SERVER_NAME')
+server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
+#fullurl = f'{baseurl}/{prefix}'
+fullurl = f'{baseurl}hub/user-redirect/'
+if len(server):
+    fullurl = f'{baseurl}hub/user-redirect/{server}/'
 
 class RequirementsHandler(tornado.web.RequestHandler):
     def get(self):
@@ -122,7 +126,7 @@ class RedirectHandler(tornado.web.RequestHandler):
 
         utils.write_inputs(projects=projects, tasks=tasks)
 
-        return self.redirect(f"{baseurl}/{prefix}lab/tree/{redirect}")
+        return self.redirect(f"{fullurl}lab/tree/{redirect}")
 
 class ImportHandler(tornado.web.RequestHandler):
     def get(self):
@@ -142,8 +146,8 @@ class ImportHandler(tornado.web.RequestHandler):
 
         script = ""
         if redirect == 'yes':
-            #script = f'window.location.href="{baseurl}/{prefix}lab/tree/{filename}"'
-            return self.redirect(f"{baseurl}/{prefix}lab/tree/{filename}")
+            #script = f'window.location.href="{fullurl}lab/tree/{filename}"'
+            return self.redirect(f"{fullurl}lab/tree/{filename}")
         else:
             #self.write(import_doc.format(FN=filename, script=script))
             return self.write(import_doc.format(FN=filename, script=""))
@@ -163,7 +167,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                 data = project_dict[PID]
                 if not "name" in data:
                     print("Unexpected response: ", data)
-                    self.redirect(f"{baseurl}/{prefix}lab/tree/")
+                    self.redirect(f"{fullurl}lab/tree/")
                 projname = data["name"]
                 projdir = str(PID) + '_' + slugify(project)
                 for t in data["tasks"]:
@@ -172,7 +176,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                             t["name"] = str(t["id"])
                         taskdir = str(idx) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
                         break
-                return self.redirect(f"{baseurl}/{prefix}lab/tree/projects/{projdir}/{taskdir}")
+                return self.redirect(f"{fullurl}lab/tree/projects/{projdir}/{taskdir}")
         else:
             #Can't get name data, just use PID and TID, create symlink first
             tpath = "/mnt/project/{PID}/task/TID"
@@ -180,7 +184,7 @@ class BrowseHandler(tornado.web.RequestHandler):
             os.makedirs(lnpath, exist_ok=True)
             lnpath = os.path.join(lnpath, TID)
             os.symlink(tpath, lnpath)
-            return self.redirect(f"{baseurl}/{prefix}lab/tree/projects/{PID}/{TID}")
+            return self.redirect(f"{fullurl}lab/tree/projects/{PID}/{TID}")
 
 # Following page HTML and Javascript from ipyauth
 # https://gitlab.com/oscar6echo/ipyauth
