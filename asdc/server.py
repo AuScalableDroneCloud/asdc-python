@@ -351,7 +351,7 @@ if __name__ == "__main__":
         (r"/browse", BrowseHandler),
         (r"/callback", CallbackHandler)
     ])
-    app.listen(sys.argv[1])
+    app.listen(int(sys.argv[1]))
     tornado.ioloop.IOLoop.current().start()
 
 
