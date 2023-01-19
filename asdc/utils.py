@@ -120,7 +120,11 @@ def write_inputs(tasks=[], projects=[]):
     if "ASDC_INPUT_FILE" in os.environ:
         path = os.path.dirname(os.environ["ASDC_INPUT_FILE"])
         if not os.path.exists(path):
-            os.makedirs(path)
+            try:
+                os.makedirs(path)
+            except:
+                print(f"Failed to make path: {path}")
+                return data
         with open(os.environ["ASDC_INPUT_FILE"], 'w') as f:
             json.dump(data, f)
     return data
