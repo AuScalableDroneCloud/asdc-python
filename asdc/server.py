@@ -112,8 +112,6 @@ fullurl = f'/user-redirect/'
 if len(server):
     fullurl = f'/user-redirect/{server}/'
 
-#Store the redirect path for later use
-redirect_path = "/"
 #Store the tokens when we receive them
 tokens = {}
 
@@ -194,7 +192,7 @@ class RedirectHandler(tornado.web.RequestHandler):
         tasks = list(filter(None, re.split('[, ]+', self.get_argument('tasks'))))
         redirect = self.get_argument('path')
         #Save the redirect path and begin the auth flow
-        redirect_path = f"{fullurl}lab/tree/{redirect}"
+        self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
         print(projects,tasks,redirect)
 
         utils.write_inputs(projects=projects, tasks=tasks)
@@ -312,19 +310,28 @@ class CallbackHandler(tornado.web.RequestHandler):
         tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
         logger.info(tokens)
 
-        logger.info(f"Redirecting: {redirect_path}")
-        return self.redirect(redirect_path)
+        logger.info(f"Redirecting: {self.application.redirect_path}")
+        return self.redirect(self.application.redirect_path)
+
+class ServerApplication(tornado.web.Application):
+
+    def __init__(self):
+        self.redirect_path = "/";
+
+        handlers = [
+            (r"/", RootHandler),
+            (r"/redirect", RedirectHandler),
+            (r"/import", ImportHandler),
+            (r"/browse", BrowseHandler),
+            (r"/tokens", TokensHandler),
+            (r"/callback", CallbackHandler)
+        ]
+        settings = dict() #your application settings here
+        super().__init__(handlers, **settings)
 
 if __name__ == "__main__":
     print("Starting OAuth2 callback server", sys.argv)
-    app = tornado.web.Application([
-        (r"/", RootHandler),
-        (r"/redirect", RedirectHandler),
-        (r"/import", ImportHandler),
-        (r"/browse", BrowseHandler),
-        (r"/tokens", TokensHandler),
-        (r"/callback", CallbackHandler)
-    ])
+    app = ServerApplication()
     app.listen(sys.argv[1])
     tornado.ioloop.IOLoop.current().start()
 
