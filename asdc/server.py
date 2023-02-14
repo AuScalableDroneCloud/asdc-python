@@ -241,7 +241,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                 project_dict = json.load(infile)
                 data = project_dict[PID]
                 if not "name" in data:
-                    print("Unexpected response: ", data)
+                    logger.info(f"Unexpected response: {data}")
                     self.redirect(f"{fullurl}lab/tree/")
                 projname = data["name"]
                 projdir = str(PID) + '_' + slugify(project)
@@ -268,7 +268,7 @@ class TokensHandler(tornado.web.RequestHandler):
         import jwt
         id_jwt = tokens.get("id_token")
         decoded = jwt.decode(id_jwt, options={"verify_signature": False}) # works in PyJWT >= v2.0
-        print(decoded)
+        logger.info(f"DECODED: {decoded}")
         id_token = decoded
 
         #Check if it is expired
@@ -287,13 +287,13 @@ class TokensHandler(tornado.web.RequestHandler):
 
         #Renew expired token
         if dt <= now:
-            print("EXPIRED!")
+            logger.info("EXPIRED!")
             #TODO: use refresh_token to get new token if necessary
             token_endpoint = f'{provider_url}/oauth/token'
             rtoken = tokens["refresh_token"]
             if rtoken and client:
                 new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
-                print("NEW_TOKENS:", new_tokens)
+                logger.info(f"NEW_TOKENS: {new_tokens}")
                 tokens = new_token
 
         self.write(tokens)
@@ -301,14 +301,16 @@ class TokensHandler(tornado.web.RequestHandler):
 class CallbackHandler(tornado.web.RequestHandler):
     def get(self):
         #NEW HANDLER - Authorization Code Flow with PKCE
-        print("CALLBACK")
+        logger.info("CALLBACK")
         authorization_response = self.request.uri
-        print(authorization_response)
+        logger.info(authorization_response)
         token_endpoint = f'{provider_url}/oauth/token'
-        print(token_endpoint)
+        logger.info(token_endpoint)
+        logger.info(code_verifier)
+        logger.info(state)
         #This gets the token using auth code flow
         tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
-        print(tokens)
+        logger.info(tokens)
 
         return redirect(redirect_path)
 
