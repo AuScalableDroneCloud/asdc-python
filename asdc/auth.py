@@ -417,6 +417,9 @@ def authenticate(config=None, scope=""):
     global settings, access_token, token_data
     data = read_inputs() #Get the local port
     port = data["port"]
+    if port is None:
+        print("Unable to get auth tokens yet, require running server port")
+        return
     server = f"http://localhost:{port}/tokens"
 
     if config is not None:
