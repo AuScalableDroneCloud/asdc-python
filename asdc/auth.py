@@ -471,8 +471,7 @@ def authenticate(config=None, timeout_seconds=30, scope=""):
             token_data = r.json()
 
         if not token_data:
-            await stop_server()
-            raise(Exception("Timed out awaiting access token! "))
+            raise(Exception("Unable to retrieve access token! "))
         else:
             print('.. success.')
 
