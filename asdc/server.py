@@ -125,9 +125,7 @@ client_id =  os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
 scope = 'openid profile email offline_access' #offline_access scope added for refresh token
 audience = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'https://asdc.cloud.edu.au/api')
 state = audience + server + str(int(datetime.datetime.utcnow().timestamp())) # seconds have been converted to integers
-callback_uri = f'{baseurl}user-redirect/asdc/callback'
-if len(server):
-    callback_uri = f'{baseurl}user-redirect/{server}/asdc/callback'
+callback_uri = f'{baseurl}{fullurl}asdc/callback'
 
 # using requests implementation
 from authlib.integrations.requests_client import OAuth2Session
