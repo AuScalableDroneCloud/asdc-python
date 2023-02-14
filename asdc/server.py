@@ -55,10 +55,14 @@ await asdc.auth.connect()
 
 project_id = '{PID}'
 task_id = '{TID}'
+task_name = '{TNAME}'
 filename = '{ASSET}'
-pathlib.Path(task).mkdir(parents=True, exist_ok=True)
-os.chdir(task)
+#Create a working dir for the task
+pathlib.Path(task_name).mkdir(parents=True, exist_ok=True)
+os.chdir(task_name)
 asdc.download_asset(project_id, task_id, filename)
+
+asdc.download_asset(filename, project=project_id, task=task_id)
 
 # + inputHidden=false outputHidden=false
 if "orthophoto" in filename:
