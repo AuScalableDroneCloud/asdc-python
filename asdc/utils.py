@@ -107,16 +107,16 @@ def default_inputs():
     #Get default inputs from env
     tasks = list(filter(None, re.split('[, ]+', os.getenv("ASDC_TASKS", ""))))
     projects = [int(p) for p in list(filter(None, re.split('\W+', os.getenv("ASDC_PROJECTS", ""))))]
-    return {"projects" : projects, "tasks" : tasks}
+    return {"projects" : projects, "tasks" : tasks, "port" : None}
 
-def write_inputs(tasks=[], projects=[]):
+def write_inputs(tasks=[], projects=[], port=None):
     #Write input data from env to inputs.json
     defaults = default_inputs()
     if not len(tasks):
         tasks = defaults["tasks"]
     if not len(projects):
         projects = defaults["projects"]
-    data = {"projects" : projects, "tasks" : tasks}
+    data = {"projects" : projects, "tasks" : tasks, "port" : port}
     if "ASDC_INPUT_FILE" in os.environ:
         path = os.path.dirname(os.environ["ASDC_INPUT_FILE"])
         if not os.path.exists(path):

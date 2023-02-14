@@ -58,6 +58,7 @@ import time
 import sys
 from pathlib import Path
 import jwt
+from asdc.utils import read_inputs    #Utility functions
 
 baseurl = ''      #Base jupyterhub url
 access_token = '' #Store the received token here
@@ -430,11 +431,10 @@ def authenticate(config=None, timeout_seconds=30, scope=""):
     scope : str
         Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
-    global settings, baseurl, access_token, token_data
-    if not baseurl:
-        _check_settings()
-        baseurl = settings["default_baseurl"]
-        logging.info("Base url: ", baseurl)
+    global settings, access_token, token_data
+    data = read_inputs() #Get the local port
+    port = data["port"]
+    server = f"http://localhost:{port}/tokens"
 
     if config is not None:
         setup(config)
@@ -462,13 +462,13 @@ def authenticate(config=None, timeout_seconds=30, scope=""):
 
     #Send the token request
     if not token_data:
-        r = requests.get(f"{baseurl}/asdc/tokens")
+        r = requests.get(server, headers={'Content-type': 'application/json'})
 
         if r.status_code >= 400:
             logging.info("Server responded error: {} {}".format(r.status_code, r.reason))
             raise(Exception("Server responded with error"))
         else:
-            logging.info("Server responded OK: {} {}\n{}".format(r.status_code, r.reason, r.text))
+            logging.info("Server responded OK: {} {}".format(r.status_code, r.reason))
             token_data = r.json()
 
         if not token_data:

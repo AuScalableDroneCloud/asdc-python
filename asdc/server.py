@@ -192,7 +192,7 @@ class RedirectHandler(tornado.web.RequestHandler):
         self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
         print(projects,tasks,redirect)
 
-        utils.write_inputs(projects=projects, tasks=tasks)
+        utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
 
         #return self.redirect(f"{fullurl}lab/tree/{redirect}")
         return self.redirect(auth_uri)
