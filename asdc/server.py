@@ -312,7 +312,7 @@ class CallbackHandler(tornado.web.RequestHandler):
         tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
         logger.info(tokens)
 
-        return redirect(redirect_path)
+        return self.redirect(redirect_path)
 
 if __name__ == "__main__":
     print("Starting OAuth2 callback server", sys.argv)
