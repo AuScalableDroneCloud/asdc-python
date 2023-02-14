@@ -302,7 +302,7 @@ class CallbackHandler(tornado.web.RequestHandler):
     def get(self):
         #NEW HANDLER - Authorization Code Flow with PKCE
         print("CALLBACK")
-        authorization_response = self.request.url
+        authorization_response = self.request.uri
         print(authorization_response)
         token_endpoint = f'{provider_url}/oauth/token'
         print(token_endpoint)
