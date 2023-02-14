@@ -276,10 +276,10 @@ class TokensHandler(tornado.web.RequestHandler):
         #ats = int(access['exp'])
         #adt = datetime.datetime.fromtimestamp(ats)
         now = datetime.datetime.now(tz=None)
-        userinfo += "\nExpires:" + dt.strftime("%d/%m/%Y %H:%M:%S")
+        #userinfo += "\nExpires:" + dt.strftime("%d/%m/%Y %H:%M:%S")
         #userinfo += "\nID expires:" + idt.strftime("%d/%m/%Y %H:%M:%S")
         #userinfo += "\nAccess expires:" + adt.strftime("%d/%m/%Y %H:%M:%S")
-        userinfo += "\nNow:" + now.strftime("%d/%m/%Y %H:%M:%S")
+        #userinfo += "\nNow:" + now.strftime("%d/%m/%Y %H:%M:%S")
 
         #Renew expired token
         if dt <= now:
