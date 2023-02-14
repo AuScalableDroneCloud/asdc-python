@@ -430,7 +430,12 @@ def authenticate(config=None, timeout_seconds=30, scope=""):
     scope : str
         Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
-    global settings, access_token, token_data, _server
+    global settings, baseurl, access_token, token_data
+    if not baseurl:
+        _check_settings()
+        baseurl = settings["default_baseurl"]
+        logging.info("Base url: ", baseurl)
+
     if config is not None:
         setup(config)
     _check_settings()
@@ -455,12 +460,8 @@ def authenticate(config=None, timeout_seconds=30, scope=""):
         if idt <= now or adt <= now:
             token_data = None
 
-    #Setup the server, listener and send the auth request
+    #Send the token request
     if not token_data:
-        if not baseurl:
-            _check_settings()
-            baseurl = settings["default_baseurl"]
-            logging.info("Base url: ", baseurl)
         r = requests.get(f"{baseurl}/asdc/tokens")
 
         if r.status_code >= 400:
