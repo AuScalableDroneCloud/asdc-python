@@ -36,7 +36,12 @@ def setup_asdc():
 import asdc.auth as auth    #For back compatibility
 from asdc.auth import *     #Also now available in root module
 from asdc.utils import *    #Utility functions
+
+#Get the settings from env and store
 auth.setup()
+#Get the access tokens
+auth.authenticate()
+
 project_dir = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan'), 'projects')
 
 #Utility functions

@@ -401,33 +401,16 @@ def is_notebook():
     # check for `kernel` attribute on the IPython instance
     return getattr(get_ipython(), 'kernel', None) is not None
 
-def authenticate(config=None, timeout_seconds=30, scope=""):
+def authenticate(config=None, scope=""):
     """
-    Authenticate with the OAuth2 id provider
-
-    - Simply calls the server endpoint to get preloaded tokens
+    Calls the server endpoint to get preloaded OAuth2 tokens
     - If tokens have expired they should automatically have been refreshed
-
-    eg:
-
-    >>> import jupyter_oauth2_api as auth
-    ... await auth.connect({"default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
-    ...    "api_audience": 'https://MYSITE/api',
-    ...    "api_client_id": 'CLIENT_ID_HERE',
-    ...    "api_scope": 'openid profile email',
-    ...    "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
-    ...    "provided" : False
-    ...   })
-    ... print(auth.access_token)
 
     Parameters
     ----------
     config: dict
         The configuration dict, required if .setup() has not yet been called to
         provide the settings.
-    timeout_seconds: int
-        Seconds to wait for the authentication process to complete before
-        raising an exception
     scope : str
         Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
