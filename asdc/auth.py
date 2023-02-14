@@ -456,8 +456,6 @@ def authenticate(config=None, scope=""):
 
         if not token_data:
             raise(Exception("Unable to retrieve access token! "))
-        else:
-            print('.. success.')
 
         access_token = token_data['access_token']
 
