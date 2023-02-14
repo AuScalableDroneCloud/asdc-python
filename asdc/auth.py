@@ -145,7 +145,6 @@ async def check_server(url):
     """
     logging.info("Testing url: ", url)
 
-    import requests
     r = requests.get(U)
 
     if r.status_code >= 400:
@@ -400,6 +399,87 @@ def is_notebook():
         return False
     # check for `kernel` attribute on the IPython instance
     return getattr(get_ipython(), 'kernel', None) is not None
+
+def authenticate(config=None, timeout_seconds=30, scope=""):
+    """
+    Authenticate with the OAuth2 id provider
+
+    - Simply calls the server endpoint to get preloaded tokens
+    - If tokens have expired they should automatically have been refreshed
+
+    eg:
+
+    >>> import jupyter_oauth2_api as auth
+    ... await auth.connect({"default_baseurl": 'https://JUPYTERHUB_URL/user-redirect',
+    ...    "api_audience": 'https://MYSITE/api',
+    ...    "api_client_id": 'CLIENT_ID_HERE',
+    ...    "api_scope": 'openid profile email',
+    ...    "api_authurl": 'MY_OAUTH2_PROVIDER_URL',
+    ...    "provided" : False
+    ...   })
+    ... print(auth.access_token)
+
+    Parameters
+    ----------
+    config: dict
+        The configuration dict, required if .setup() has not yet been called to
+        provide the settings.
+    timeout_seconds: int
+        Seconds to wait for the authentication process to complete before
+        raising an exception
+    scope : str
+        Any additional scopes to append to default list ('openid profile email' unless overridden)
+    """
+    global settings, access_token, token_data, _server
+    if config is not None:
+        setup(config)
+    _check_settings()
+
+    if scope is not None:
+        settings["api_scope"] += " " + scope
+
+    #Have a token already? Check if it is expired
+    if token_data:
+        #Need to decode the access_token as it seems it expires earlier than id_token
+        access = jwt.decode(token_data['access_token'], options={"verify_signature": False})
+        its = int(token_data['id_token']['exp'])
+        idt = datetime.datetime.fromtimestamp(its)
+        ats = int(access['exp'])
+        adt = datetime.datetime.fromtimestamp(ats)
+        now = datetime.datetime.now(tz=None)
+        #print("ID expires:", idt.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("Access expires:", adt.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("Now:", now.strftime("%d/%m/%Y %H:%M:%S"))
+
+        #Renew expired token
+        if idt <= now or adt <= now:
+            token_data = None
+
+    #Setup the server, listener and send the auth request
+    if not token_data:
+        if not baseurl:
+            _check_settings()
+            baseurl = settings["default_baseurl"]
+            logging.info("Base url: ", baseurl)
+        r = requests.get(f"{baseurl}/asdc/tokens")
+
+        if r.status_code >= 400:
+            logging.info("Server responded error: {} {}".format(r.status_code, r.reason))
+            raise(Exception("Server responded with error"))
+        else:
+            logging.info("Server responded OK: {} {}\n{}".format(r.status_code, r.reason, r.text))
+            token_data = r.json()
+
+        if not token_data:
+            await stop_server()
+            raise(Exception("Timed out awaiting access token! "))
+        else:
+            print('.. success.')
+
+        access_token = token_data['access_token']
+
+    else:
+        print('Already have a valid token')
 
 async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
     """
