@@ -125,7 +125,7 @@ client_id =  os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
 scope = 'openid profile email offline_access' #offline_access scope added for refresh token
 audience = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'https://asdc.cloud.edu.au/api')
 state = audience + server + str(int(datetime.datetime.utcnow().timestamp())) # seconds have been converted to integers
-callback_uri = '{baseurl}/{fullurl}/asdc/callback'
+callback_uri = f'{baseurl}/{fullurl}/asdc/callback'
 
 # using requests implementation
 from authlib.integrations.requests_client import OAuth2Session
@@ -254,7 +254,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                 return self.redirect(f"{fullurl}lab/tree/projects/{projdir}/{taskdir}")
         else:
             #Can't get name data, just use PID and TID, create symlink first
-            tpath = "/mnt/project/{PID}/task/TID"
+            tpath = f"/mnt/project/{PID}/task/TID"
             lnpath = os.path.join(phome, str(PID))
             os.makedirs(lnpath, exist_ok=True)
             lnpath = os.path.join(lnpath, TID)
