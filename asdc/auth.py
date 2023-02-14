@@ -431,19 +431,13 @@ def authenticate(config=None, scope=""):
 
     #Have a token already? Check if it is expired
     if token_data:
-        #Need to decode the access_token as it seems it expires earlier than id_token
-        access = jwt.decode(token_data['access_token'], options={"verify_signature": False})
-        its = int(token_data['id_token']['exp'])
-        idt = datetime.datetime.fromtimestamp(its)
-        ats = int(access['exp'])
-        adt = datetime.datetime.fromtimestamp(ats)
+        dt = datetime.datetime.fromtimestamp(token_data['expires_at'])
         now = datetime.datetime.now(tz=None)
-        #print("ID expires:", idt.strftime("%d/%m/%Y %H:%M:%S"))
-        #print("Access expires:", adt.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("Token expires:", dt.strftime("%d/%m/%Y %H:%M:%S"))
         #print("Now:", now.strftime("%d/%m/%Y %H:%M:%S"))
 
         #Renew expired token
-        if idt <= now or adt <= now:
+        if dt <= now:
             token_data = None
 
     #Send the token request
@@ -502,6 +496,8 @@ async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
     scope : str
         Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
+    return authenticate()
+
     global settings, access_token, token_data, _server
     if config is not None:
         setup(config)
