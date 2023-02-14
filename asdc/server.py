@@ -1,3 +1,8 @@
+"""
+Server extensions for jupyterhub
+Experimental server flow additions
+- Authorization Code Flow with Proof Key for Code Exchange (PKCE)
+"""
 import tornado.ioloop
 import tornado.web
 import tornado.httpclient
@@ -6,6 +11,7 @@ import sys
 import os
 import re
 from slugify import slugify
+import datetime
 
 #Debug logging
 from tornado.log import enable_pretty_logging
@@ -99,12 +105,67 @@ import_doc = """
 
 #prefix = os.getenv('JUPYTERHUB_SERVICE_PREFIX')
 #user = os.getenv('JUPYTERHUB_USER')
-#baseurl = os.getenv('JUPYTERHUB_URL')
+baseurl = os.getenv('JUPYTERHUB_URL')
 server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
 #fullurl = f'{baseurl}/{prefix}'
 fullurl = f'/user-redirect/'
 if len(server):
     fullurl = f'/user-redirect/{server}/'
+
+#Store the redirect path for later use
+redirect_path = "/"
+#Store the tokens when we receive them
+tokens = {}
+
+################################################################################################################
+#Using PKCE to avoid storing client secret
+#https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-proof-key-for-code-exchange-pkce
+provider_url = os.getenv('JUPYTER_OAUTH2_AUTH_PROVIDER_URL', '')
+client_id =  os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
+scope = 'openid profile email offline_access' #offline_access scope added for refresh token
+audience = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'https://asdc.cloud.edu.au/api')
+state = audience + server + str(int(datetime.datetime.utcnow().timestamp())) # seconds have been converted to integers
+callback_uri = '{baseurl}/{fullurl}/asdc/callback'
+
+# using requests implementation
+from authlib.integrations.requests_client import OAuth2Session
+#https://community.auth0.com/t/surface-custom-scopes-on-consent-screen-for-first-party-applications/86291
+class OAuth2SessionProxy(OAuth2Session):
+    """
+    need to extend OAuth2Session in order to include the `audience`
+    param in the OAuth2Session.EXTRA_AUTHORIZE_PARAMS tuple, it's used
+    by Auth0 in determining which API this request is associated with
+    """
+    def __init__(self, *args, **kwargs):
+        super(OAuth2SessionProxy, self).__init__(*args, **kwargs)
+
+    EXTRA_AUTHORIZE_PARAMS = (
+        'response_mode',
+        'nonce',
+        'prompt',
+        'login_hint',
+        'audience',
+        'code_challenge',
+        'code_challenge_method',
+    )
+
+from authlib.common.security import generate_token
+# remember to save this nonce for verification
+nonce = generate_token()
+code_verifier = generate_token(48)
+print("VERIFIER:",code_verifier)
+from authlib.oauth2.rfc7636 import create_s256_code_challenge
+code_challenge = create_s256_code_challenge(code_verifier)
+#client.create_authorization_url(url, redirect_uri='xxx', nonce=nonce, ...)
+client = OAuth2SessionProxy(client_id, scope=scope, redirect_uri=callback_uri, audience=audience) #, code_challenge_method='S256') #, nonce=nonce, state=env.get("APP_SECRET_KEY"))
+
+authorization_endpoint = f'{provider_url}/authorize'
+#uri, state = client.create_authorization_url(authorization_endpoint, nonce=nonce)
+#uri, state = client.create_authorization_url(authorization_endpoint, code_verifier=code_verifier)
+auth_uri, state = client.create_authorization_url(authorization_endpoint, code_challenge=code_challenge, code_challenge_method='S256', state=state)
+#(Use state to verify later)
+print(auth_uri)
+################################################################################################################
 
 class RequirementsHandler(tornado.web.RequestHandler):
     def get(self):
@@ -120,17 +181,26 @@ class RequirementsHandler(tornado.web.RequestHandler):
 class RedirectHandler(tornado.web.RequestHandler):
     """
     Write the updated projects/tasks and redirect to provided notebook
+
+    Can we get access_token here with an additional redirect?
+    - user goes to JHUB_URL/asdc/redirect&path=PATH
+    - store PATH on the server so we can redirect to it later
+    - user is redirected to the Auth0 login url, with redirect back to /callback
+    - if PATH set in /callback, then redirect there after storing the access_token
     """
     def get(self):
         logger.info("Handling redirect")
         projects = [int(p) for p in list(filter(None, re.split('\W+', self.get_argument('projects'))))]
         tasks = list(filter(None, re.split('[, ]+', self.get_argument('tasks'))))
         redirect = self.get_argument('path')
+        #Save the redirect path and begin the auth flow
+        redirect_path = redirect
         print(projects,tasks,redirect)
 
         utils.write_inputs(projects=projects, tasks=tasks)
 
-        return self.redirect(f"{fullurl}lab/tree/{redirect}")
+        #return self.redirect(f"{fullurl}lab/tree/{redirect}")
+        return self.redirect(auth_uri)
 
 class ImportHandler(tornado.web.RequestHandler):
     def get(self):
@@ -138,13 +208,14 @@ class ImportHandler(tornado.web.RequestHandler):
         logger.info("Handling import")
         project = self.get_argument('project')
         task = self.get_argument('task')
+        taskname = slugify(self.get_argument('name'))
         asset = self.get_argument('asset', 'orthophoto.tif')
         redirect = self.get_argument('redirect', 'yes')
-        filename = 'task_{0}.py'.format(task)
+        filename = f'{taskname}.py'
 
         # Write the python script / notebook
         with open(str(Path.home() / filename), 'w') as f:
-            f.write(py_base.format(PID=project, TID=task, ASSET=asset))
+            f.write(py_base.format(PID=project, TID=task, TNAME=taskname, ASSET=asset))
 
         utils.write_inputs(projects=[project], tasks=[task])
 
@@ -190,161 +261,56 @@ class BrowseHandler(tornado.web.RequestHandler):
             os.symlink(tpath, lnpath)
             return self.redirect(f"{fullurl}lab/tree/projects/{PID}/{TID}")
 
-# Following page HTML and Javascript from ipyauth
-# https://gitlab.com/oscar6echo/ipyauth
-ipyauth_doc = """
-<!DOCTYPE html>
-<html lang="en">
+class TokensHandler(tornado.web.RequestHandler):
+    def get(self):
+        logger.info("Handling tokens")
+        #Return the token data
+        import jwt
+        id_jwt = tokens.get("id_token")
+        decoded = jwt.decode(id_jwt, options={"verify_signature": False}) # works in PyJWT >= v2.0
+        print(decoded)
+        id_token = decoded
 
-<!--
-(Code pulled from ipyauth, originals in these files):
-https://gitlab.com/oscar6echo/ipyauth/-/tree/master/ipyauth/ipyauth_callback/templates/index.html
-https://gitlab.com/oscar6echo/ipyauth/-/blob/master/ipyauth/ipyauth_callback/templates/assets/util.js
-https://gitlab.com/oscar6echo/ipyauth/-/blob/master/ipyauth/ipyauth_callback/templates/assets/main.js
+        #Check if it is expired
+        dt = datetime.datetime.fromtimestamp(tokens['expires_at'])
+        #Need to decode the access_token as id_token expiry doesn't matter after initial verification
+        #access = jwt.decode(tokens['access_token'], options={"verify_signature": False})
+        #its = int(id_token['exp'])
+        #idt = datetime.datetime.fromtimestamp(its)
+        #ats = int(access['exp'])
+        #adt = datetime.datetime.fromtimestamp(ats)
+        now = datetime.datetime.now(tz=None)
+        userinfo += "\nExpires:" + dt.strftime("%d/%m/%Y %H:%M:%S")
+        #userinfo += "\nID expires:" + idt.strftime("%d/%m/%Y %H:%M:%S")
+        #userinfo += "\nAccess expires:" + adt.strftime("%d/%m/%Y %H:%M:%S")
+        userinfo += "\nNow:" + now.strftime("%d/%m/%Y %H:%M:%S")
 
-The MIT License (MIT)
+        #Renew expired token
+        if dt <= now:
+            print("EXPIRED!")
+            #TODO: use refresh_token to get new token if necessary
+            token_endpoint = f'{provider_url}/oauth/token'
+            rtoken = tokens["refresh_token"]
+            if rtoken and client:
+                new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
+                print("NEW_TOKENS:", new_tokens)
+                tokens = new_token
 
-Copyright (c) 2018 Olivier Borderies
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
--->
-<head>
-    <meta charset="utf-8" />
-    <title>ipyauth Callback</title>
-</head>
-
-<body>
-    <h1>OAuth2 Callback</h3>
-    <div id="msg"></div>
-
-    <script type="text/javascript">
-        //-- assets/util.js
-        function getDataFromCallbackUrl() {
-            const url1 = window.location.href.split('#')[1];
-            const url2 = window.location.href.split('?')[1];
-            const url = url1 ? url1 : url2;
-            const urlParams = new URLSearchParams(url);
-            const data = Object.assign(
-                ...Array.from(urlParams.entries()).map(([k, v]) => ({ [k]: v }))
-            );
-            return data;
-        }
-
-        function parseJwt(id_token) {
-            const base64Url = id_token.split('.')[1];
-            const base64 = base64Url.replace('-', '+').replace('_', '/');
-            return JSON.parse(window.atob(base64));
-        }
-
-        function containsError(urlData) {
-            let e = false;
-            if ('error' in urlData) e = true;
-            if ('error_description' in urlData) e = true;
-            if (!('access_token' in urlData) && !('code' in urlData)) e = true;
-            if (!('state' in urlData)) e = true;
-            return e;
-        }
-
-        function sendMessageToParent(window, objMsg) {
-            if (window.opener) {
-                //console.log('window.opener: ' + window.opener);
-                window.opener.postMessage(objMsg, '*');
-            } else if (window.parent) {
-                //console.log('window.parent: ' + window.parent);
-                window.parent.postMessage(objMsg, '*');
-                //if (window.parent.opener) {
-                //    //console.log('window.parent.opener: ' + window.parent.opener);
-                //    window.parent.opener.postMessage(objMsg, '*');
-                //}
-            }
-        }
-
-        //-- assets/main.js
-        console.log('start callback');
-
-        // extract urlData
-        const urlData = getDataFromCallbackUrl();
-        window.urlData = urlData;
-
-        // build id_token: JWT by openid spec
-        let id_token;
-        if (urlData.id_token) {
-            id_token = parseJwt(urlData.id_token);
-            urlData.id_token = id_token;
-        }
-        //console.log('id_token: ' + id_token);
-        //console.log('urlData: ' + urlData);
-
-        // check if urlData means an authentication error
-        var msg = document.getElementById('msg');
-        var msgHTML = '';
-        if (containsError(urlData)) {
-            // error in authentication
-            console.log('error in urlData');
-
-            msgHTML = '<h2>Authentication failed.</h2><p>urlData:'
-                      + JSON.stringify(urlData) + '</p>';
-
-            // build message
-            objMsg = Object.assign({ statusAuth: 'error' }, urlData);
-
-            // post message back to parent window
-            sendMessageToParent(window, objMsg);
-
-            msg.innerHTML = msgHTML;
-
-        } else {
-            // no error
-            console.log('No error in urlData');
-
-            // get access_token and code
-            const access_token = urlData.access_token || null;
-            const code = urlData.code || null;
-            //console.log('access_token: ' + access_token);
-            //console.log('code: ' + code);
-
-            msgHTML = '<h2>Authentication completed.</h2>'
-            //msgHTML += `<p>The access_token is ${access_token}</p>`;
-            //msgHTML += `<p>The code is ${code}</p>`;
-
-            // build message
-            objMsg = Object.assign({ statusAuth: 'ok' }, urlData);
-
-            // post message back to parent window
-            sendMessageToParent(window, objMsg);
-
-            msg.innerHTML = msgHTML + '<p>Close this tab/popup and start again</p>'
-
-            //Close the popup
-            window.close();
-        }
-
-    </script>
-</body>
-
-</html>
-"""
+        self.write(tokens)
 
 class CallbackHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write(ipyauth_doc)
+        #NEW HANDLER - Authorization Code Flow with PKCE
+        print("CALLBACK")
+        authorization_response = self.request.url
+        print(authorization_response)
+        token_endpoint = f'{provider_url}/oauth/token'
+        print(token_endpoint)
+        #This gets the token using auth code flow
+        tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
+        print(tokens)
+
+        return redirect(redirect_path)
 
 if __name__ == "__main__":
     print("Starting OAuth2 callback server", sys.argv)
@@ -353,6 +319,7 @@ if __name__ == "__main__":
         (r"/redirect", RedirectHandler),
         (r"/import", ImportHandler),
         (r"/browse", BrowseHandler),
+        (r"/tokens", TokensHandler),
         (r"/callback", CallbackHandler)
     ])
     app.listen(sys.argv[1])
