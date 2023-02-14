@@ -121,7 +121,7 @@ tokens = {}
 #Using PKCE to avoid storing client secret
 #https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-proof-key-for-code-exchange-pkce
 provider_url = os.getenv('JUPYTER_OAUTH2_AUTH_PROVIDER_URL', '')
-client_id =  os.getenv('JUPYTER_OAUTH2_CLIENT_ID', '')
+client_id =  os.getenv('JUPYTER_OAUTH2_API_CLIENT_ID', '') #Must use the API client id, not the regular webapp id
 scope = 'openid profile email offline_access' #offline_access scope added for refresh token
 audience = os.getenv('JUPYTER_OAUTH2_API_AUDIENCE', 'https://asdc.cloud.edu.au/api')
 state = audience + server + str(int(datetime.datetime.utcnow().timestamp())) # seconds have been converted to integers
