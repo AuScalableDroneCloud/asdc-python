@@ -112,9 +112,6 @@ fullurl = f'/user-redirect/'
 if len(server):
     fullurl = f'/user-redirect/{server}/'
 
-#Store the tokens when we receive them
-tokens = {}
-
 ################################################################################################################
 #Using PKCE to avoid storing client secret
 #https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-proof-key-for-code-exchange-pkce
@@ -262,6 +259,7 @@ class BrowseHandler(tornado.web.RequestHandler):
 class TokensHandler(tornado.web.RequestHandler):
     def get(self):
         logger.info("Handling tokens")
+        tokens = self.application.tokens
         #Return the token data
         import jwt
         id_jwt = tokens.get("id_token")
@@ -308,6 +306,7 @@ class CallbackHandler(tornado.web.RequestHandler):
         logger.info(state)
         #This gets the token using auth code flow
         tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
+        self.application.tokens = tokens #Store on application
         logger.info(tokens)
 
         logger.info(f"Redirecting: {self.application.redirect_path}")
@@ -317,6 +316,7 @@ class ServerApplication(tornado.web.Application):
 
     def __init__(self):
         self.redirect_path = "/";
+        self.tokens = {};
 
         handlers = [
             (r"/", RootHandler),
