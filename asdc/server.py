@@ -215,7 +215,8 @@ class RedirectHandler(tornado.web.RequestHandler):
             self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
         print(projects,tasks,redirect)
 
-        utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
+        #utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
+        utils.write_inputs(projects=projects, tasks=tasks)
 
         #return self.redirect(f"{fullurl}lab/tree/{redirect}")
         return self.redirect(auth_uri)
@@ -331,6 +332,9 @@ class CallbackHandler(tornado.web.RequestHandler):
         tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
         self.application.tokens = tokens #Store on application
         logger.info(tokens)
+
+        #Re-write the input data, now include the server port to access tokens with
+        utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
 
         if len(self.application.redirect_path) == 0:
             logger.info(f"Redirect set to nowhere, closing")
