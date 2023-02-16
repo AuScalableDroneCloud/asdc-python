@@ -103,6 +103,26 @@ import_doc = """
 </html>
 """
 
+nowhere_doc = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Auth completed, closing</title>
+</head>
+
+<body>
+    <h1>OAuth2 Callback succeeded</h3>
+
+    <script type="text/javascript">
+        //Close the window
+        window.close();
+    </script>
+</body>
+
+</html>
+"""
+
 #prefix = os.getenv('JUPYTERHUB_SERVICE_PREFIX')
 #user = os.getenv('JUPYTERHUB_USER')
 baseurl = os.getenv('JUPYTERHUB_URL')
@@ -189,7 +209,10 @@ class RedirectHandler(tornado.web.RequestHandler):
         tasks = list(filter(None, re.split('[, ]+', self.get_argument('tasks', ''))))
         redirect = self.get_argument('path', '')
         #Save the redirect path and begin the auth flow
-        self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
+        if redirect == 'nowhere':
+            self.application.redirect_path = ""
+        else:
+            self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
         print(projects,tasks,redirect)
 
         utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
@@ -309,8 +332,12 @@ class CallbackHandler(tornado.web.RequestHandler):
         self.application.tokens = tokens #Store on application
         logger.info(tokens)
 
-        logger.info(f"Redirecting: {self.application.redirect_path}")
-        return self.redirect(self.application.redirect_path)
+        if len(self.application.redirect_path) == 0:
+            logger.info(f"Redirect set to nowhere, closing")
+            self.write(nowhere_doc)
+        else:
+            logger.info(f"Redirecting: {self.application.redirect_path}")
+            return self.redirect(self.application.redirect_path)
 
 class ServerApplication(tornado.web.Application):
 
