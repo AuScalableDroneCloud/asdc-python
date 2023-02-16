@@ -428,21 +428,10 @@ def authenticate(config=None, scope=""):
         #Server not yet started, open via popup and provide a link for manual start
         if is_notebook():
             from IPython.display import display,HTML
-            url = settings["default_baseurl"] + '/asdc/redirect'
-            html = f"""No access tokens found, <h3><a href="url" target="_blank" rel="opener">Click here to login</a></h3>
-                      <script>window.open("url");</script>""";
+            url = settings["default_baseurl"] + '/asdc/redirect?path='
+            html = f"""No access tokens found, <h3><a href="javascript:window.location='{url}'+window.location;" target="_blank" rel="opener">Click here to login</a></h3>
+                      <script>window.location='{url}'+window.location;</script>""";
             display(HTML(html))
-            timeout_seconds=30
-            import asyncio
-            print('Waiting for authorisation', end='')
-            for i in range(0,timeout_seconds*4): #4 ticks per second
-                #Have the port yet?
-                if port: break
-                #Blocking sleep
-                time.sleep(0.25)
-                #Visual feedback
-                print('.', end='')
-                sys.stdout.flush()
         if not port:
             print("Auth tokens not available ...")
             return
