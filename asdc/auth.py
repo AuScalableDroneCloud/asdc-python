@@ -510,6 +510,7 @@ async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
     scope : str
         Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
+    print("'await asdc.connect()' is deprecated, you can remove this line from your code")
     return authenticate()
 
     global settings, access_token, token_data, _server
