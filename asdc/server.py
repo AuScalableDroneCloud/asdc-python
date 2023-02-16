@@ -111,8 +111,9 @@ nowhere_doc = """
     <title>Auth completed, closing</title>
 </head>
 
-<body>
-    <h1>OAuth2 Callback succeeded</h3>
+<body onload="window.close();">
+    <h3>OAuth2 Callback succeeded, you can close this window</h3>
+    <a href="javascript:window.close()">click to close</a>
 
     <script type="text/javascript">
         //Close the window
@@ -337,7 +338,7 @@ class CallbackHandler(tornado.web.RequestHandler):
         utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
 
         if len(self.application.redirect_path) == 0:
-            logger.info(f"Redirect set to nowhere, closing")
+            logger.info(f"Redirect set to nowhere")
             self.write(nowhere_doc)
         else:
             logger.info(f"Redirecting: {self.application.redirect_path}")
