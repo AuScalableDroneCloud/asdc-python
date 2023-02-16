@@ -213,7 +213,7 @@ class RedirectHandler(tornado.web.RequestHandler):
         if redirect == 'nowhere':
             self.application.redirect_path = ""
         else:
-            self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
+            self.application.redirect_path = f"{fullurl}{redirect}"
         print(projects,tasks,redirect)
 
         #utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
