@@ -443,6 +443,10 @@ def authenticate(config=None, scope=""):
                 #Visual feedback
                 print('.', end='')
                 sys.stdout.flush()
+                #Attempt to load port again
+                data = read_inputs()
+                port = data["port"]
+
         if not port:
             print("Auth tokens not available ...")
             return
