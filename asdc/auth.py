@@ -414,13 +414,37 @@ def authenticate(config=None, scope=""):
     scope : str
         Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
-    global settings, access_token, token_data
-    data = read_inputs() #Get the local port
+    global settings, baseurl, port, access_token, token_data
+    if not baseurl:
+        _check_settings()
+        baseurl = settings["default_baseurl"]
+        logging.info("Base url: ", baseurl)
+
+    #Get the local port of the server instance
+    #(If not found, wait for authentication via popup or user action)
+    data = read_inputs()
     port = data["port"]
     if port is None:
-        print("Unable to get auth tokens yet, require running server port")
-        return
-    server = f"http://localhost:{port}/tokens"
+        #Server not yet started, open via popup and provide a link for manual start
+        from IPython.display import display,HTML
+        url = settings["default_baseurl"] + '/asdc/redirect'
+        html = f"""No access tokens found, <h3><a href="url" target="_blank" rel="opener">Click here to login</a></h3>
+                  <script>window.open("url");</script>""";
+        display(HTML(html))
+        timeout_seconds=30
+        import asyncio
+        print('Waiting for authorisation', end='')
+        for i in range(0,timeout_seconds*4): #4 ticks per second
+            #Have the port yet?
+            if port: break
+            #Blocking sleep
+            time.sleep(0.25)
+            #Visual feedback
+            print('.', end='')
+            sys.stdout.flush()
+        if not port:
+            print("Auth failed for unknown reason :( ...")
+            return
 
     if config is not None:
         setup(config)
@@ -442,6 +466,7 @@ def authenticate(config=None, scope=""):
 
     #Send the token request
     if not token_data:
+        server = f"http://localhost:{port}/tokens"
         r = requests.get(server, headers={'Content-type': 'application/json'})
 
         if r.status_code >= 400:

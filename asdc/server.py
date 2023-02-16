@@ -187,7 +187,7 @@ class RedirectHandler(tornado.web.RequestHandler):
         logger.info("Handling redirect")
         projects = [int(p) for p in list(filter(None, re.split('\W+', self.get_argument('projects', ''))))]
         tasks = list(filter(None, re.split('[, ]+', self.get_argument('tasks', ''))))
-        redirect = self.get_argument('path')
+        redirect = self.get_argument('path', '')
         #Save the redirect path and begin the auth flow
         self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
         print(projects,tasks,redirect)
