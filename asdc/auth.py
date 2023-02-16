@@ -428,7 +428,7 @@ def authenticate(config=None, scope=""):
         #Server not yet started, open via popup and provide a link for manual start
         if is_notebook():
             from IPython.display import display,HTML
-            url = settings["default_baseurl"] + '/asdc/redirect?path='
+            url = settings["default_baseurl"] + '/asdc/redirect'
             html = f"""<h3><a href="javascript:window.open('{url}', name='_self')">Click here to login</a></h3>""";
             display(HTML(html))
         if not port:
