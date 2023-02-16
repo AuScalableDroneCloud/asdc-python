@@ -335,7 +335,7 @@ class CallbackHandler(tornado.web.RequestHandler):
         logger.info(tokens)
 
         #Re-write the input data, now include the server port to access tokens with
-        utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
+        utils.write_port(sys.argv[1])
 
         if len(self.application.redirect_path) == 0:
             logger.info(f"Redirect set to nowhere")

@@ -129,6 +129,14 @@ def write_inputs(tasks=[], projects=[], port=None):
             json.dump(data, f)
     return data
 
+def write_port(port):
+    #Write input data from env to inputs.json
+    data = read_inputs()
+    data["port"] = port
+    if "ASDC_INPUT_FILE" in os.environ:
+        with open(os.environ["ASDC_INPUT_FILE"], 'w') as f:
+            json.dump(data, f)
+
 def read_inputs():
     #Read the project and task json data for import
     inputs_dict = default_inputs()
