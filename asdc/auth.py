@@ -429,8 +429,10 @@ def authenticate(config=None, scope=""):
         if is_notebook():
             from IPython.display import display,HTML
             url = settings["default_baseurl"] + '/asdc/redirect?path='
-            html = f"""No access tokens found, <h3><a href="javascript:window.location='{url}'+window.location;" target="_blank" rel="opener">Click here to login</a></h3>
-                      <script>window.location='{url}'+window.location;</script>""";
+            html = f"""No access tokens found,
+                       <h3><a href="javascript:window.open('{url}');" target="_blank" rel="opener">
+                       Click here to login</a></h3>
+                      <script>window.location='{url}';</script>""";
             display(HTML(html))
         if not port:
             print("Auth tokens not available ...")
