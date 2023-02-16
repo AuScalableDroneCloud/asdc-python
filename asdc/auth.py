@@ -431,8 +431,7 @@ def authenticate(config=None, scope=""):
             url = settings["default_baseurl"] + '/asdc/redirect?path='
             html = f"""No access tokens found,
                        <h3><a href="javascript:window.open('{url}');" target="_blank" rel="opener">
-                       Click here to login</a></h3>
-                      <script>window.location='{url}';</script>""";
+                       Click here to login</a></h3>""";
             display(HTML(html))
         if not port:
             print("Auth tokens not available ...")
