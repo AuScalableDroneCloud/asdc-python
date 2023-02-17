@@ -254,7 +254,7 @@ class BrowseHandler(tornado.web.RequestHandler):
         PID = self.get_argument('project')
         TID = self.get_argument('task')
         logger.info(f"Handling filebrowser {PID} - {TID}")
-        phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/.local'), 'projects')
+        phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/'), 'projects')
         fn = os.path.join(phome, 'projects.json')
         if os.path.exists(fn):
             logger.info(f"Load from file {fn}")
