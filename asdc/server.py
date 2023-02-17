@@ -271,7 +271,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                     if t['id'] == TID:
                         if t["name"] is None:
                             t["name"] = str(t["id"])
-                        taskdir = str(i) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
+                        taskdir = str(i+1) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
                         break
                 return self.redirect(f"{fullurl}lab/tree/projects/{projdir}/{taskdir}")
         else:
