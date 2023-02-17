@@ -58,18 +58,13 @@ import asdc
 import pathlib
 import os
 
-await asdc.auth.connect()
-
-project_id = '{PID}'
-task_id = '{TID}'
+asdc.set_selection({PID}, '{TID}')
 task_name = '{TNAME}'
 filename = '{ASSET}'
 #Create a working dir for the task
 pathlib.Path(task_name).mkdir(parents=True, exist_ok=True)
 os.chdir(task_name)
-asdc.download_asset(project_id, task_id, filename)
-
-asdc.download_asset(filename, project=project_id, task=task_id)
+asdc.download_asset(filename)
 
 # + inputHidden=false outputHidden=false
 if "orthophoto" in filename:

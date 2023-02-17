@@ -792,6 +792,10 @@ projects = get_projects()
 task_dict = {}
 project_dict = {}
 
+def set_selection(project, task):
+    # Update active selections
+    selected = {"project": project, "task" : task}
+
 def get_selection(project=None, task=None, exception=True):
     """
     Get first selected project/task
