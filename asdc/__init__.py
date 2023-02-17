@@ -42,7 +42,7 @@ auth.setup()
 #Get the access tokens
 auth.authenticate()
 
-project_dir = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan'), 'projects')
+project_dir = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/.local/'), 'projects')
 
 #Utility functions
 def call_api(url, data=None, headersAPI=None, content_type='application/json', throw=False, prefix=auth.settings["token_prefix"]):

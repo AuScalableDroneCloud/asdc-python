@@ -12,6 +12,7 @@ import os
 import re
 from slugify import slugify
 import datetime
+import json
 
 #Debug logging
 from tornado.log import enable_pretty_logging
@@ -253,10 +254,10 @@ class BrowseHandler(tornado.web.RequestHandler):
         #Redirects to the mounted project and task folder
         PID = self.get_argument('project')
         TID = self.get_argument('task')
-        phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan'), 'projects')
+        phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/.local'), 'projects')
         fn = os.path.join(phome, 'projects.json')
         if os.path.exists(fn):
-            #    print("LOAD FROM FILE", fn)
+            print("LOAD FROM FILE", fn)
             with open(fn, 'r') as infile:
                 project_dict = json.load(infile)
                 data = project_dict[PID]
@@ -289,27 +290,14 @@ class TokensHandler(tornado.web.RequestHandler):
         import jwt
         id_jwt = tokens.get("id_token")
         decoded = jwt.decode(id_jwt, options={"verify_signature": False}) # works in PyJWT >= v2.0
-        logger.info(f"DECODED: {decoded}")
         id_token = decoded
 
-        #Check if it is expired
+        #Check if it is expired, renew expired token
         dt = datetime.datetime.fromtimestamp(tokens['expires_at'])
-        #Need to decode the access_token as id_token expiry doesn't matter after initial verification
-        #access = jwt.decode(tokens['access_token'], options={"verify_signature": False})
-        #its = int(id_token['exp'])
-        #idt = datetime.datetime.fromtimestamp(its)
-        #ats = int(access['exp'])
-        #adt = datetime.datetime.fromtimestamp(ats)
         now = datetime.datetime.now(tz=None)
-        #userinfo += "\nExpires:" + dt.strftime("%d/%m/%Y %H:%M:%S")
-        #userinfo += "\nID expires:" + idt.strftime("%d/%m/%Y %H:%M:%S")
-        #userinfo += "\nAccess expires:" + adt.strftime("%d/%m/%Y %H:%M:%S")
-        #userinfo += "\nNow:" + now.strftime("%d/%m/%Y %H:%M:%S")
-
-        #Renew expired token
         if dt <= now:
             logger.info("EXPIRED!")
-            #TODO: use refresh_token to get new token if necessary
+            #Use refresh_token to get new token if necessary
             token_endpoint = f'{provider_url}/oauth/token'
             rtoken = tokens["refresh_token"]
             if rtoken and client:
