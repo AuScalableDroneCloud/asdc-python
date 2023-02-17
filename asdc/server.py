@@ -265,7 +265,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                     logger.info(f"Unexpected response: {data}")
                     self.redirect(f"{fullurl}lab/tree/")
                 projname = data["name"]
-                projdir = str(PID) + '_' + slugify(project)
+                projdir = str(PID) + '_' + slugify(projname)
                 for t in data["tasks"]:
                     if t == TID:
                         if t["name"] is None:
