@@ -268,7 +268,7 @@ class BrowseHandler(tornado.web.RequestHandler):
                 projdir = str(PID) + '_' + slugify(projname)
                 taskdir = ''
                 for i,t in enumerate(data["tasks"]):
-                    if t == TID:
+                    if t['id'] == TID:
                         if t["name"] is None:
                             t["name"] = str(t["id"])
                         taskdir = str(i) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
