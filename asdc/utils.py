@@ -111,12 +111,11 @@ def default_inputs():
 
 def write_inputs(tasks=[], projects=[], port=None):
     #Write input data from env to inputs.json
-    defaults = default_inputs()
-    if not len(tasks):
-        tasks = defaults["tasks"]
-    if not len(projects):
-        projects = defaults["projects"]
-    data = {"projects" : projects, "tasks" : tasks, "port" : port}
+    data = read_inputs()
+    if len(tasks):
+        data['tasks'] = tasks
+    if len(projects):
+        data['projects'] = projects
     if "ASDC_INPUT_FILE" in os.environ:
         path = os.path.dirname(os.environ["ASDC_INPUT_FILE"])
         if not os.path.exists(path):
