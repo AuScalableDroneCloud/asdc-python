@@ -141,9 +141,9 @@ def read_inputs():
     inputs_dict = default_inputs()
     if "ASDC_INPUT_FILE" in os.environ:
         fn = os.environ["ASDC_INPUT_FILE"]
-        #If file has not been written, then write it and return initial values
+        #If file has not been written, return defaults
         if not os.path.exists(fn):
-            return write_inputs()
+            return default_inputs()
         #Read json into dict and return
         with open(fn, 'r') as f:
             try:
