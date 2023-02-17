@@ -223,7 +223,7 @@ class ImportHandler(tornado.web.RequestHandler):
         #Write a python module to import the selected task
         if not 'access_token' in self.application.tokens:
             #Redirect to authorise, then return here
-            self.application.redirect_path = self.full_url()
+            self.application.redirect_path = self.request.full_url()
             return self.redirect(auth_uri)
 
         logger.info("Handling import")
