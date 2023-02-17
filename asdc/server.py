@@ -250,14 +250,14 @@ class ImportHandler(tornado.web.RequestHandler):
 
 class BrowseHandler(tornado.web.RequestHandler):
     def get(self):
-        logger.info("Handling filebrowser")
         #Redirects to the mounted project and task folder
         PID = self.get_argument('project')
         TID = self.get_argument('task')
+        logger.info(f"Handling filebrowser {PID} - {TID}")
         phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/.local'), 'projects')
         fn = os.path.join(phome, 'projects.json')
         if os.path.exists(fn):
-            print("LOAD FROM FILE", fn)
+            logger.info(f"Load from file {fn}")
             with open(fn, 'r') as infile:
                 project_dict = json.load(infile)
                 data = project_dict[PID]
@@ -266,11 +266,12 @@ class BrowseHandler(tornado.web.RequestHandler):
                     self.redirect(f"{fullurl}lab/tree/")
                 projname = data["name"]
                 projdir = str(PID) + '_' + slugify(projname)
-                for t in data["tasks"]:
+                taskdir = ''
+                for i,t in enumerate(data["tasks"]):
                     if t == TID:
                         if t["name"] is None:
                             t["name"] = str(t["id"])
-                        taskdir = str(idx) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
+                        taskdir = str(i) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
                         break
                 return self.redirect(f"{fullurl}lab/tree/projects/{projdir}/{taskdir}")
         else:
