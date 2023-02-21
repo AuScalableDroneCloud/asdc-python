@@ -793,6 +793,7 @@ task_dict = {}
 project_dict = {}
 
 def set_selection(project, task):
+    global selected
     # Update active selections
     selected = {"project": project, "task" : task}
 
