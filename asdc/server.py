@@ -320,7 +320,15 @@ class CallbackHandler(tornado.web.RequestHandler):
         logger.info(code_verifier)
         logger.info(state)
         #This gets the token using auth code flow
-        tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
+        #THIS SOMETIMES ERRORS WITH http.client.RemoteDisconnected: Remote end closed connection without response
+        #https://github.com/requests/requests-oauthlib/blob/master/requests_oauthlib/oauth2_session.py#L191
+        retries = 5
+        for i in range(retries):
+            try:
+                tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
+                break
+            except (requests.exceptions.ConnectionError) as e:
+                pass
         self.application.tokens = tokens #Store on application
         logger.info(tokens)
 
@@ -356,5 +364,4 @@ if __name__ == "__main__":
     app = ServerApplication()
     app.listen(sys.argv[1])
     tornado.ioloop.IOLoop.current().start()
-
 
