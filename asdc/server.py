@@ -13,6 +13,7 @@ import re
 from slugify import slugify
 import datetime
 import json
+import requests
 
 #Debug logging
 from tornado.log import enable_pretty_logging
