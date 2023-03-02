@@ -460,7 +460,7 @@ def authenticate(config=None, scope=""):
                         #Have the port yet?
                         if port:
                             authenticate()
-                            print('Authentication succeeded')
+                            print(' done, you are logged in.')
                             break
                         #Blocking sleep
                         time.sleep(0.25)

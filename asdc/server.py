@@ -73,7 +73,7 @@ if "orthophoto" in filename:
     from PIL import Image
 
     im = Image.open(filename)
-    im.thumbnail((350,350),Image.ANTIALIAS)
+    im.thumbnail((350,350),Image.LANCZOS)
     display(im)
 """
 
