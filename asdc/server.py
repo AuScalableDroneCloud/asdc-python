@@ -250,41 +250,6 @@ class ImportHandler(tornado.web.RequestHandler):
             #self.write(import_doc.format(FN=filename, script=script))
             return self.write(import_doc.format(FN=filename, script=""))
 
-class BrowseHandler(tornado.web.RequestHandler):
-    def get(self):
-        #Redirects to the mounted project and task folder
-        PID = self.get_argument('project')
-        TID = self.get_argument('task')
-        logger.info(f"Handling filebrowser {PID} - {TID}")
-        phome = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/'), 'projects')
-        fn = os.path.join(phome, 'projects.json')
-        if os.path.exists(fn):
-            logger.info(f"Load from file {fn}")
-            with open(fn, 'r') as infile:
-                project_dict = json.load(infile)
-                data = project_dict[PID]
-                if not "name" in data:
-                    logger.info(f"Unexpected response: {data}")
-                    self.redirect(f"{fullurl}lab/tree/")
-                projname = data["name"]
-                projdir = str(PID) + '_' + slugify(projname)
-                taskdir = ''
-                for i,t in enumerate(data["tasks"]):
-                    if t['id'] == TID:
-                        if t["name"] is None:
-                            t["name"] = str(t["id"])
-                        taskdir = str(i+1) + '_' + slugify(t["name"]) # + '_(' + str(t['id'])[0:8] + ')'
-                        break
-                return self.redirect(f"{fullurl}lab/tree/projects/{projdir}/{taskdir}")
-        else:
-            #Can't get name data, just use PID and TID, create symlink first
-            tpath = f"/mnt/project/{PID}/task/TID"
-            lnpath = os.path.join(phome, str(PID))
-            os.makedirs(lnpath, exist_ok=True)
-            lnpath = os.path.join(lnpath, TID)
-            os.symlink(tpath, lnpath)
-            return self.redirect(f"{fullurl}lab/tree/projects/{PID}/{TID}")
-
 class TokensHandler(tornado.web.RequestHandler):
     def get(self):
         logger.info("Handling tokens")
@@ -353,7 +318,6 @@ class ServerApplication(tornado.web.Application):
             (r"/", RootHandler),
             (r"/redirect", RedirectHandler),
             (r"/import", ImportHandler),
-            (r"/browse", BrowseHandler),
             (r"/tokens", TokensHandler),
             (r"/callback", CallbackHandler)
         ]
