@@ -425,31 +425,54 @@ def authenticate(config=None, scope=""):
     data = read_inputs()
     port = data["port"]
     if port is None:
-        #Server not yet started, open via popup and provide a link for manual start
+        #Server not yet started, provide a button to manually authenticate
         if is_notebook():
-            from IPython.display import display,HTML
-            url = settings["default_baseurl"] + '/asdc/redirect?path=nowhere'
-            html = f'<h3><a href="{url}">Click here to login</a></h3>';
-            display(HTML(html))
+            # A bit of a hack: create a html button that opens auth url
+            # add an on_click that finds a unique ipywidgets button and
+            # call it's click() event to run the server side code
+            import uuid
+            uid = str(uuid.uuid4())
+            from IPython.display import display, HTML
+            import ipywidgets as widgets
+            r_url = settings["default_baseurl"] + '/asdc/redirect?path=nowhere'
+            html = """<script>
+            function click_it() {
+                let button = document.getElementsByClassName("UID")[0];
+                button.click();
+            }
+            </script>
+            <a href='URL' target='_blank' onclick='click_it();' class='jupyter-button widget-button'>Authenticate</a>
+            """.replace("UID", uid).replace("URL", r_url)
 
-            timeout_seconds=30
-            import asyncio
-            print('Waiting for authorisation', end='')
-            for i in range(0,timeout_seconds*4): #4 ticks per second
-                #Have the port yet?
-                if port: break
-                #Blocking sleep
-                time.sleep(0.25)
-                #Visual feedback
-                print('.', end='')
-                sys.stdout.flush()
-                #Attempt to load port again
-                data = read_inputs()
-                port = data["port"]
+            btn = widgets.Button(description="hidden")
+            btn.layout.display = 'none' #Hide the widget
+            btn.add_class(uid) #Add unique class id
+            out = widgets.Output()
+            def window_open_button(url):
+                with out:
+                    timeout_seconds=10
+                    import asyncio
+                    print('Waiting for authorisation', end='')
+                    data = read_inputs()
+                    port = data["port"]
+                    for i in range(0,timeout_seconds*4): #4 ticks per second
+                        #Have the port yet?
+                        if port:
+                            self.authenticate()
+                            break
+                        #Blocking sleep
+                        time.sleep(0.25)
+                        #Visual feedback
+                        print('.', end='')
+                        sys.stdout.flush()
+                        #Attempt to load port again
+                        data = read_inputs()
+                        port = data["port"]
+            btn.on_click(window_open_button)
+            display(btn, out, HTML(html))
 
-        if not port:
-            print("Auth tokens not available ...")
-            return
+        print("Auth tokens not yet available ...")
+        return
 
     if config is not None:
         setup(config)
