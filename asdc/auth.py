@@ -431,17 +431,18 @@ def authenticate(config=None, scope=""):
             # add an on_click that finds a unique ipywidgets button and
             # call it's click() event to run the server side code
             import uuid
-            uid = str(uuid.uuid4())
+            uid = uuid.uuid4().hex
             from IPython.display import display, HTML
             import ipywidgets as widgets
             r_url = settings["default_baseurl"] + '/asdc/redirect?path=nowhere'
             html = """<script>
-            function click_it() {
+            function click_it_UID(element) {
                 let button = document.getElementsByClassName("UID")[0];
                 button.click();
+                element.style.display = 'none';
             }
             </script>
-            <a href='URL' target='_blank' onclick='click_it();' class='jupyter-button widget-button'>Authenticate</a>
+            <a href='URL' target='_blank' onclick='click_it_UID(this);' class='jupyter-button widget-button'>Authenticate</a>
             """.replace("UID", uid).replace("URL", r_url)
 
             btn = widgets.Button(description="hidden")
@@ -459,6 +460,7 @@ def authenticate(config=None, scope=""):
                         #Have the port yet?
                         if port:
                             authenticate()
+                            print('Authentication succeeded')
                             break
                         #Blocking sleep
                         time.sleep(0.25)
@@ -471,7 +473,8 @@ def authenticate(config=None, scope=""):
             btn.on_click(window_open_button)
             display(btn, out, HTML(html))
 
-        print("Auth tokens not yet available ...")
+        else:
+            print("Auth tokens not available ...")
         return
 
     if config is not None:
