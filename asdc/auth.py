@@ -458,7 +458,7 @@ def authenticate(config=None, scope=""):
                     for i in range(0,timeout_seconds*4): #4 ticks per second
                         #Have the port yet?
                         if port:
-                            self.authenticate()
+                            authenticate()
                             break
                         #Blocking sleep
                         time.sleep(0.25)
