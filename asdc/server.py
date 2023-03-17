@@ -263,7 +263,7 @@ class ImportHandler(tornado.web.RequestHandler):
         with open(str(Path.home() / filename), 'w') as f:
             nb_doc = py_base
             #Add handler based on asset file extension
-            ext = pathlib.Path(asset).suffix
+            ext = Path(asset).suffix
             if ext == '.tif':
                 nb_doc += handler_tif
             elif ext == '.laz':
