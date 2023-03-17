@@ -68,14 +68,29 @@ os.chdir(task_name)
 asdc.download_asset(filename)
 
 # + inputHidden=false outputHidden=false
-if "orthophoto" in filename:
-    from IPython.display import display
-    from PIL import Image
-
-    im = Image.open(filename)
-    im.thumbnail((350,350),Image.LANCZOS)
-    display(im)
 """
+
+handler_tif = """
+from IPython.display import display
+from PIL import Image
+
+im = Image.open(filename)
+im.thumbnail((350,350),Image.LANCZOS)
+display(im)
+"""
+
+handler_laz = """
+#TODO: plot .laz file
+"""
+
+handler_zip = """
+#TODO: unzip and plot 3d model .zip
+"""
+
+handler_glb = """
+#TODO: plot 3d model .glb
+"""
+
 
 import_doc = """
 <!DOCTYPE html>
@@ -246,7 +261,19 @@ class ImportHandler(tornado.web.RequestHandler):
 
         # Write the python script / notebook
         with open(str(Path.home() / filename), 'w') as f:
-            f.write(py_base.format(PID=project, TID=task, TNAME=taskname, ASSET=asset))
+            nb_doc = py_base
+            #Add handler based on asset file extension
+            ext = pathlib.Path(asset).suffix
+            if ext == '.tif':
+                nb_doc += handler_tif
+            elif ext == '.laz':
+                nb_doc += handler_laz
+            elif ext == '.zip':
+                nb_doc += handler_zip
+            elif ext == '.glb':
+                nb_doc += handler_glb
+
+            f.write(nb_doc.format(PID=project, TID=task, TNAME=taskname, ASSET=asset))
 
         utils.write_inputs(projects=[project], tasks=[task])
 
