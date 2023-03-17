@@ -125,10 +125,15 @@ nowhere_doc = """
 #user = os.getenv('JUPYTERHUB_USER')
 baseurl = os.getenv('JUPYTERHUB_URL')
 server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
+user = os.getenv('JUPYTERHUB_USER', '')
 #fullurl = f'{baseurl}/{prefix}'
-fullurl = f'/user-redirect/'
+if len(user):
+    fullurl = f'/user/{user}/'
+else:
+    fullurl = f'/user-redirect/'
+#Add named server 
 if len(server):
-    fullurl = f'/user-redirect/{server}/'
+    fullurl = f'{fullurl}{server}/'
 
 ################################################################################################################
 #Using PKCE to avoid storing client secret
@@ -223,8 +228,7 @@ class ImportHandler(tornado.web.RequestHandler):
         if not 'access_token' in self.application.tokens:
             #Redirect to authorise, then return here
             redirect = self.request.uri.rsplit('/', 1)[-1]
-            #self.application.redirect_path = f"{fullurl}asdc/{redirect}"
-            self.application.redirect_path = f"/asdc/{redirect}"
+            self.application.redirect_path = f"{fullurl}asdc/{redirect}"
             #Remove the redirects= counter
             self.application.redirect_path = re.sub(r'&redirects=\d', '', self.application.redirect_path)
             logger.info(f"No tokens, redirecting, orig url: {self.request.uri} : return: {self.application.redirect_path}")
