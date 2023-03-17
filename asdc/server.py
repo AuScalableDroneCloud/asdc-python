@@ -93,7 +93,7 @@ import_doc = """
 <body>
     <h1>ASDC API Request</h3>
     <p>Request processed for {FN}
-    <a href="{fullurl}lab/tree/{FN}">(Output here)</a>
+    <a href="{redirected}lab/tree/{FN}">(Output here)</a>
     </p>
 </body>
 
@@ -127,13 +127,15 @@ baseurl = os.getenv('JUPYTERHUB_URL')
 server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
 user = os.getenv('JUPYTERHUB_USER', '')
 #fullurl = f'{baseurl}/{prefix}'
+fullurl = f'/user-redirect/'
 if len(user):
-    fullurl = f'/user/{user}/'
+    redirected = f'/user/{user}/'
 else:
-    fullurl = f'/user-redirect/'
+    redirected = fullurl
 #Add named server 
 if len(server):
     fullurl = f'{fullurl}{server}/'
+    redirected = f'{redirected}{server}/'
 
 ################################################################################################################
 #Using PKCE to avoid storing client secret
@@ -213,7 +215,7 @@ class RedirectHandler(tornado.web.RequestHandler):
         if redirect == 'nowhere':
             self.application.redirect_path = ""
         else:
-            self.application.redirect_path = f"{fullurl}lab/tree/{redirect}"
+            self.application.redirect_path = f"{redirected}lab/tree/{redirect}"
         print(projects,tasks,redirect)
 
         #utils.write_inputs(projects=projects, tasks=tasks, port=sys.argv[1])
@@ -228,7 +230,7 @@ class ImportHandler(tornado.web.RequestHandler):
         if not 'access_token' in self.application.tokens:
             #Redirect to authorise, then return here
             redirect = self.request.uri.rsplit('/', 1)[-1]
-            self.application.redirect_path = f"{fullurl}asdc/{redirect}"
+            self.application.redirect_path = f"{redirected}asdc/{redirect}"
             #Remove the redirects= counter
             self.application.redirect_path = re.sub(r'&redirects=\d', '', self.application.redirect_path)
             logger.info(f"No tokens, redirecting, orig url: {self.request.uri} : return: {self.application.redirect_path}")
@@ -251,7 +253,7 @@ class ImportHandler(tornado.web.RequestHandler):
         script = ""
         if redirect == 'yes':
             #script = f'window.location.href="{fullurl}lab/tree/{filename}"'
-            return self.redirect(f"{fullurl}lab/tree/{filename}")
+            return self.redirect(f"{redirected}lab/tree/{filename}")
         else:
             #self.write(import_doc.format(FN=filename, script=script))
             return self.write(import_doc.format(FN=filename, script=""))
