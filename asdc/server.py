@@ -166,7 +166,6 @@ from authlib.common.security import generate_token
 # remember to save this nonce for verification
 nonce = generate_token()
 code_verifier = generate_token(48)
-print("VERIFIER:",code_verifier)
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
 code_challenge = create_s256_code_challenge(code_verifier)
 #client.create_authorization_url(url, redirect_uri='xxx', nonce=nonce, ...)
@@ -177,7 +176,6 @@ authorization_endpoint = f'{provider_url}/authorize'
 #uri, state = client.create_authorization_url(authorization_endpoint, code_verifier=code_verifier)
 auth_uri, state = client.create_authorization_url(authorization_endpoint, code_challenge=code_challenge, code_challenge_method='S256', state=state)
 #(Use state to verify later)
-print(auth_uri)
 ################################################################################################################
 
 class RequirementsHandler(tornado.web.RequestHandler):
@@ -225,6 +223,7 @@ class ImportHandler(tornado.web.RequestHandler):
         if not 'access_token' in self.application.tokens:
             #Redirect to authorise, then return here
             redirect = self.request.uri.rsplit('/', 1)[-1]
+            logger.info(f"No tokens, redirecting, orig url: {self.request.uri} : return: {redirect}")
             self.application.redirect_path = f"{fullurl}asdc/{redirect}"
             return self.redirect(auth_uri)
 
@@ -264,13 +263,13 @@ class TokensHandler(tornado.web.RequestHandler):
         dt = datetime.datetime.fromtimestamp(tokens['expires_at'])
         now = datetime.datetime.now(tz=None)
         if dt <= now:
-            logger.info("EXPIRED!")
+            logger.info("Token expired")
             #Use refresh_token to get new token if necessary
             token_endpoint = f'{provider_url}/oauth/token'
             rtoken = tokens["refresh_token"]
             if rtoken and client:
                 new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
-                logger.info(f"NEW_TOKENS: {new_tokens}")
+                logger.info(f"New tokens recieved")
                 tokens = new_token
 
         self.write(tokens)
@@ -278,13 +277,9 @@ class TokensHandler(tornado.web.RequestHandler):
 class CallbackHandler(tornado.web.RequestHandler):
     def get(self):
         #NEW HANDLER - Authorization Code Flow with PKCE
-        logger.info("CALLBACK")
         authorization_response = self.request.uri
-        logger.info(authorization_response)
+        logger.info("/callback")
         token_endpoint = f'{provider_url}/oauth/token'
-        logger.info(token_endpoint)
-        logger.info(code_verifier)
-        logger.info(state)
         #This gets the token using auth code flow
         #THIS SOMETIMES ERRORS WITH http.client.RemoteDisconnected: Remote end closed connection without response
         #https://github.com/requests/requests-oauthlib/blob/master/requests_oauthlib/oauth2_session.py#L191
@@ -294,9 +289,9 @@ class CallbackHandler(tornado.web.RequestHandler):
                 tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
                 break
             except (requests.exceptions.ConnectionError) as e:
+                logger.info(f"Exception in client.fetch_token: {e} retry # {i}")
                 pass
         self.application.tokens = tokens #Store on application
-        logger.info(tokens)
 
         #Re-write the input data, now include the server port to access tokens with
         utils.write_port(sys.argv[1])
