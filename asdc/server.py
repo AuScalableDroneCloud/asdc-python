@@ -308,7 +308,7 @@ class TokensHandler(tornado.web.RequestHandler):
                     new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
                     logger.info(f"New tokens recieved")
                     tokens = new_tokens
-            except (Exception as e1):
+            except (Exception) as e1:
                 logger.error(f"Something went wrong: {e1}")
                 try:
                     #Try with new client
@@ -316,7 +316,7 @@ class TokensHandler(tornado.web.RequestHandler):
                     new_tokens = cl.refresh_token(token_endpoint, refresh_token=rtoken)
                     logger.info(f"New tokens recieved (2)")
                     tokens = new_tokens
-                except (Exception as e2):
+                except (Exception) as e2:
                     #Just return the original tokens
                     logger.error(f"Something went wrong (2): {e2}")
                     pass
