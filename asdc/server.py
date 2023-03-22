@@ -303,10 +303,23 @@ class TokensHandler(tornado.web.RequestHandler):
             #Use refresh_token to get new token if necessary
             token_endpoint = f'{provider_url}/oauth/token'
             rtoken = tokens["refresh_token"]
-            if rtoken and client:
-                new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
-                logger.info(f"New tokens recieved")
-                tokens = new_token
+            try:
+                if rtoken and client:
+                    new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
+                    logger.info(f"New tokens recieved")
+                    tokens = new_tokens
+            except (Exception as e1):
+                logger.error(f"Something went wrong: {e1}")
+                try:
+                    #Try with new client
+                    cl = OAuth2SessionProxy(client_id, scope=scope, redirect_uri=callback_uri, audience=audience)
+                    new_tokens = cl.refresh_token(token_endpoint, refresh_token=rtoken)
+                    logger.info(f"New tokens recieved (2)")
+                    tokens = new_tokens
+                except (Exception as e2):
+                    #Just return the original tokens
+                    logger.error(f"Something went wrong (2): {e2}")
+                    pass
 
         self.write(tokens)
 
