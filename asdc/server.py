@@ -38,6 +38,7 @@ root_doc = """
     <h1>ASDC Jupyterhub Interface</h3>
     <p>This extension provides an OAuth2 callback for Jupyter environments</p>
     <p>(plus ASDC API extensions)</p>
+    <p>{EXTRA}</p>
 </body>
 
 </html>
@@ -45,7 +46,11 @@ root_doc = """
 
 class RootHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write(root_doc)
+        tokens = self.application.tokens
+        if tokens:
+            self.write(root_doc.format(EXTRA="(you are authenticated with the API)"))
+        else:
+            self.write(root_doc.format(EXTRA="(you are not authenticated with the API)"))
 
 
 py_base = """# + [markdown] inputHidden=false outputHidden=false
