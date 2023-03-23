@@ -401,7 +401,52 @@ def is_notebook():
     # check for `kernel` attribute on the IPython instance
     return getattr(get_ipython(), 'kernel', None) is not None
 
-def authenticate(config=None, scope=""):
+def get_token():
+    """
+    Calls the server endpoint to get preloaded OAuth2 tokens
+    - If tokens have expired they are automatically refreshed
+
+    Returns
+    -------
+    string
+        access_token data
+    """
+    global token_data, access_token
+    #Have a token already? Check if it is expired
+    if token_data:
+        dt = datetime.datetime.fromtimestamp(token_data['expires_at'])
+        now = datetime.datetime.now(tz=None)
+        #print("Token expires:", dt.strftime("%d/%m/%Y %H:%M:%S"))
+        #print("Now:", now.strftime("%d/%m/%Y %H:%M:%S"))
+
+        #Expired token?
+        if dt <= now:
+            token_data = None
+            return True
+            
+    #Send the token request
+    if not token_data:
+        server = f"http://localhost:{port}/tokens"
+        r = requests.get(server, headers={'Content-type': 'application/json'})
+
+        if r.status_code >= 400:
+            logging.info("Server responded error: {} {}".format(r.status_code, r.reason))
+            raise(Exception("Server responded with error"))
+        else:
+            logging.info("Server responded OK: {} {}".format(r.status_code, r.reason))
+            token_data = r.json()
+
+        if not token_data:
+            raise(Exception("Unable to retrieve access token! "))
+
+        access_token = token_data['access_token']
+
+    else:
+        print('Already have a valid token')
+
+    return access_token
+
+def authenticate(config=None): #, scope=""):
     """
     Calls the server endpoint to get preloaded OAuth2 tokens
     - If tokens have expired they should automatically have been refreshed
@@ -411,10 +456,10 @@ def authenticate(config=None, scope=""):
     config: dict
         The configuration dict, required if .setup() has not yet been called to
         provide the settings.
-    scope : str
-        Any additional scopes to append to default list ('openid profile email' unless overridden)
     """
-    global settings, baseurl, port, access_token, token_data
+    #scope : str
+    #    Any additional scopes to append to default list ('openid profile email' unless overridden)
+    global settings, baseurl, port
     if not baseurl:
         _check_settings()
         baseurl = settings["default_baseurl"]
@@ -481,39 +526,12 @@ def authenticate(config=None, scope=""):
         setup(config)
     _check_settings()
 
-    if scope is not None:
-        settings["api_scope"] += " " + scope
+    #Unused
+    #if scope is not None:
+    #    settings["api_scope"] += " " + scope
 
-    #Have a token already? Check if it is expired
-    if token_data:
-        dt = datetime.datetime.fromtimestamp(token_data['expires_at'])
-        now = datetime.datetime.now(tz=None)
-        #print("Token expires:", dt.strftime("%d/%m/%Y %H:%M:%S"))
-        #print("Now:", now.strftime("%d/%m/%Y %H:%M:%S"))
-
-        #Renew expired token
-        if dt <= now:
-            token_data = None
-
-    #Send the token request
-    if not token_data:
-        server = f"http://localhost:{port}/tokens"
-        r = requests.get(server, headers={'Content-type': 'application/json'})
-
-        if r.status_code >= 400:
-            logging.info("Server responded error: {} {}".format(r.status_code, r.reason))
-            raise(Exception("Server responded with error"))
-        else:
-            logging.info("Server responded OK: {} {}".format(r.status_code, r.reason))
-            token_data = r.json()
-
-        if not token_data:
-            raise(Exception("Unable to retrieve access token! "))
-
-        access_token = token_data['access_token']
-
-    else:
-        print('Already have a valid token')
+    #Get the tokens, checking expiry and renewing if necessary
+    get_tokens()
 
 async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
     """

@@ -45,7 +45,7 @@ auth.authenticate()
 project_dir = os.path.join(os.getenv('JUPYTER_SERVER_ROOT', '/home/jovyan/'), 'projects')
 
 #Utility functions
-def call_api(url, data=None, headersAPI=None, content_type='application/json', throw=False, prefix=auth.settings["token_prefix"]):
+def call_api(url, data=None, headersAPI=None, content_type='application/json', throw=True, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint
 
@@ -73,8 +73,9 @@ def call_api(url, data=None, headersAPI=None, content_type='application/json', t
         'accept': 'application/json',
         'Content-type': content_type,
         }
-        if auth.access_token:
-            headersAPI['Authorization'] = prefix + ' ' + auth.access_token if auth.access_token else ''
+        if not auth.cookies:
+            access_token = auth.get_token()
+            headersAPI['Authorization'] = prefix + ' ' + access_token
     
     #POST if data provided, otherwise GET
     if data:
@@ -123,8 +124,9 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
     'accept': 'application/json',
     'Content-type': 'application/octet-stream',
     }
-    if auth.access_token:
-        headersAPI['Authorization'] = prefix + ' ' + auth.access_token if auth.access_token else ''
+    if not auth.cookies:
+        access_token = auth.get_token()
+        headersAPI['Authorization'] = prefix + ' ' + access_token
 
     if filename is None:
         filename = url.split('/')[-1]
@@ -341,8 +343,9 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
                 m = MultipartEncoderMonitor(e, lambda monitor: bar.update(monitor.bytes_read - bar.n))
                 data = m
             headers = {'Content-Type': data.content_type}
-            if auth.access_token:
-                headers['Authorization'] = prefix + ' ' + auth.access_token if auth.access_token else ''
+            if not auth.cookies:
+                access_token = auth.get_token()
+                headersAPI['Authorization'] = prefix + ' ' + access_token
             return requests.post(url, data=data, headers=headers, cookies=auth.cookies)
 
     if progress:
@@ -416,7 +419,7 @@ def upload_image(filename, project, task, progress=True):
     return upload(f'/projects/{project}/tasks/{task}/upload/', filename, progress=progress)
 
 
-def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_prefix"]):
+def call_api_js(url, callback="alert", data=None, prefix=auth.settings["token_prefix"]):
     """
     Call an API endpoint from the browser via Javascript, appends a script to the page to 
     do the request.
@@ -432,6 +435,7 @@ def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_
     """
     #GET, list nodes, passing url and token from python
     from IPython.display import display, HTML
+    access_token = auth.get_token()
     #Generate a code to prevent this call happening again if page reloaded without clearing
     import string
     import secrets
@@ -479,7 +483,7 @@ def call_api_js(url, callback="alert()", data=None, prefix=auth.settings["token_
     """)
     script = temp_obj.substitute(DATA=json.dumps(data),
                 CODE=code, METHOD=method, URL=url,
-                TOKEN=auth.access_token, PREFIX=prefix, CALLBACK=callback)
+                TOKEN=access_token, PREFIX=prefix, CALLBACK=callback)
     display(HTML(script))
 
 def userinfo():

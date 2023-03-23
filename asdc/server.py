@@ -31,13 +31,13 @@ root_doc = """
 
 <head>
     <meta charset="utf-8" />
-    <title>Jupyter_OAuth2</title>
+    <title>ASDC Jupyterhub Interface</title>
 </head>
 
 <body>
-    <h1>Jupyter_OAuth2</h3>
+    <h1>ASDC Jupyterhub Interface</h3>
     <p>This extension provides an OAuth2 callback for Jupyter environments</p>
-    <p>(plus ASDC API extensions)/p>
+    <p>(plus ASDC API extensions)</p>
 </body>
 
 </html>
@@ -186,7 +186,7 @@ class OAuth2SessionProxy(OAuth2Session):
 
 from authlib.common.security import generate_token
 # remember to save this nonce for verification
-nonce = generate_token()
+#nonce = generate_token()
 code_verifier = generate_token(48)
 from authlib.oauth2.rfc7636 import create_s256_code_challenge
 code_challenge = create_s256_code_challenge(code_verifier)
@@ -304,22 +304,15 @@ class TokensHandler(tornado.web.RequestHandler):
             token_endpoint = f'{provider_url}/oauth/token'
             rtoken = tokens["refresh_token"]
             try:
-                if rtoken and client:
-                    new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
-                    logger.info(f"New tokens recieved")
-                    tokens = new_tokens
-            except (Exception) as e1:
-                logger.error(f"Something went wrong: {e1}")
-                try:
-                    #Try with new client
-                    cl = OAuth2SessionProxy(client_id, scope=scope, redirect_uri=callback_uri, audience=audience)
-                    new_tokens = cl.refresh_token(token_endpoint, refresh_token=rtoken)
-                    logger.info(f"New tokens recieved (2)")
-                    tokens = new_tokens
-                except (Exception) as e2:
-                    #Just return the original tokens
-                    logger.error(f"Something went wrong (2): {e2}")
-                    pass
+                #Need to create new client
+                client = OAuth2SessionProxy(client_id, scope=scope, redirect_uri=callback_uri, audience=audience)
+                new_tokens = client.refresh_token(token_endpoint, refresh_token=rtoken)
+                logger.info(f"New tokens recieved")
+                tokens = new_tokens
+            except (Exception) as e:
+                #Just return the original tokens
+                logger.error(f"Something went wrong: {e}")
+                pass
 
         self.write(tokens)
 
@@ -335,6 +328,7 @@ class CallbackHandler(tornado.web.RequestHandler):
         retries = 5
         for i in range(retries):
             try:
+                client = OAuth2SessionProxy(client_id, scope=scope, redirect_uri=callback_uri, audience=audience)
                 tokens = client.fetch_token(token_endpoint, authorization_response=authorization_response, code_verifier=code_verifier, state=state)
                 break
             except (requests.exceptions.ConnectionError) as e:
