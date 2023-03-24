@@ -233,8 +233,7 @@ class ImportHandler(tornado.web.RequestHandler):
         # Create links to sample notebooks
         srcfile = Path(__file__)
         srcdir = srcfile.parents[0] / 'notebooks'
-        pathlist = srcdir.glob('**/*.py')
-        for path in pathlist:
+        for path in srcdir.iterdir():
             dest = destdir / path.name
             if not dest.exists():
                 os.symlink(path, dest)
