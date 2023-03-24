@@ -228,6 +228,7 @@ class ImportHandler(tornado.web.RequestHandler):
 
         #Write input data to a file
         destdir = Path.home() / taskname
+        destdir.mkdir(parents=True, exist_ok=True)
         with open(str(destdir / 'input.json'), 'w') as f:
             data = {"project" : project, "task" : task, "task_name" : taskname, "asset": asset}
             json.dump(data, f)
