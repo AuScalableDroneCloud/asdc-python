@@ -13,6 +13,33 @@ import os
 from PIL import Image
 import piexif
 
+import sys
+class ExecutionPaused(Exception):
+    """Pause Execution Exception for IPython.
+
+    Stop execution but hides the traceback and exception details
+    """
+    def __init__(self, message=''):
+        ipython = get_ipython()
+        self.default_traceback = ipython.showtraceback
+
+        def hide_traceback(*args, **kwargs):
+            etype, value, tb = sys.exc_info()
+            #If the exception type is ExecutionPaused, print minimal notification and no traceback
+            #otherwise print the standard traceback output
+            if etype == type(self):
+                if message: print(message)
+                value.__cause__ = None  # suppress chained exceptions
+                return ipython._showtraceback(etype, value, ipython.InteractiveTB.get_exception_only(etype, value))
+            else:
+                return self.default_traceback(*args, **kwargs)
+
+        ipython.showtraceback = hide_traceback
+
+    def __del__(self):
+        #Restore
+        ipython.showtraceback = self.default_traceback
+
 
 def is_notebook():
     """

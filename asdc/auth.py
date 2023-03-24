@@ -497,7 +497,8 @@ def authenticate(config=None): #, scope=""):
                         port = data["port"]
             btn.on_click(window_open_button)
             display(btn, out, HTML(html))
-
+            #Exception to stop execution here
+            raise(ExecutionPaused("Auth tokens not available"))
         else:
             print("Auth tokens not available ...")
         return
