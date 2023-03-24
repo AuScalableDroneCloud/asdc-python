@@ -35,7 +35,7 @@ def setup_asdc():
 
 import asdc.auth as auth    #For back compatibility
 from asdc.auth import *     #Also now available in root module
-from asdc.utils import *    #Utility functions
+from asdc.utils import *
 
 #Get the settings from env and store
 auth.setup()

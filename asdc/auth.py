@@ -58,7 +58,7 @@ import time
 import sys
 from pathlib import Path
 import jwt
-from asdc.utils import read_inputs, is_notebook    #Utility functions
+from asdc.utils import *
 
 baseurl = ''      #Base jupyterhub url
 access_token = '' #Store the received token here
