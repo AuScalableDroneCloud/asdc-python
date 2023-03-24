@@ -515,7 +515,7 @@ def authenticate(config=None): #, scope=""):
     #    settings["api_scope"] += " " + scope
 
     #Get the tokens, checking expiry and renewing if necessary
-    get_tokens()
+    get_token()
 
 async def connect(config=None, mode='iframe', timeout_seconds=30, scope=""):
     """
