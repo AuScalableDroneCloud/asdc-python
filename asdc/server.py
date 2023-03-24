@@ -68,7 +68,8 @@ class RootHandler(tornado.web.RequestHandler):
             import jwt
             id_jwt = tokens.get("id_token")
             decoded = jwt.decode(id_jwt, options={"verify_signature": False}) # works in PyJWT >= v2.0
-            self.write(root_doc.format(EXTRA="You are authenticated with the API: " + json.dump(decoded, indent=2)))
+            pic = decoded["picture"]
+            self.write(root_doc.format(EXTRA="You are authenticated with the API:<br>" + json.dump(decoded, indent=2) + f'<br><img src="{pic}">'))
         else:
             self.write(root_doc.format(EXTRA=f"(you are not authenticated with the API)<br><a href='{redirected}/asdc/redirect?path=nowhere'>Authenticate</a>"))
 
