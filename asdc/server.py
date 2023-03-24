@@ -73,51 +73,6 @@ class RootHandler(tornado.web.RequestHandler):
         else:
             self.write(root_doc.format(EXTRA=f"(you are not authenticated with the API)<br><a href='{redirected}/asdc/redirect?path=nowhere'>Authenticate</a>"))
 
-
-py_base = """# + [markdown] inputHidden=false outputHidden=false
-# # Loading a data set from ASDC WebODM
-#
-# This notebook / script will load a specific task dataset
-#
-
-# + inputHidden=false outputHidden=false
-import asdc
-import pathlib
-import os
-
-asdc.set_selection({PID}, '{TID}')
-task_name = '{TNAME}'
-filename = '{ASSET}'
-#Create a working dir for the task
-pathlib.Path(task_name).mkdir(parents=True, exist_ok=True)
-os.chdir(task_name)
-asdc.download_asset(filename)
-
-# + inputHidden=false outputHidden=false
-"""
-
-handler_tif = """
-from IPython.display import display
-from PIL import Image
-
-im = Image.open(filename)
-im.thumbnail((350,350),Image.LANCZOS)
-display(im)
-"""
-
-handler_laz = """
-#TODO: plot .laz file
-"""
-
-handler_zip = """
-#TODO: unzip and plot 3d model .zip
-"""
-
-handler_glb = """
-#TODO: plot 3d model .glb
-"""
-
-
 import_doc = """
 <!DOCTYPE html>
 <html lang="en">
@@ -267,30 +222,26 @@ class ImportHandler(tornado.web.RequestHandler):
         taskname = slugify(self.get_argument('name'))
         asset = self.get_argument('asset', 'orthophoto.tif')
         redirect = self.get_argument('redirect', 'yes')
-        filename = f'{taskname}.py'
 
-        # Write the python script / notebook
-        with open(str(Path.home() / filename), 'w') as f:
-            nb_doc = py_base
-            #Add handler based on asset file extension
-            ext = Path(asset).suffix
-            if ext == '.tif':
-                nb_doc += handler_tif
-            elif ext == '.laz':
-                nb_doc += handler_laz
-            elif ext == '.zip':
-                nb_doc += handler_zip
-            elif ext == '.glb':
-                nb_doc += handler_glb
+        srcfile = Path(__file__)
+        srcdir = srcfile.parents[0]
 
-            f.write(nb_doc.format(PID=project, TID=task, TNAME=taskname, ASSET=asset))
+        #Write input data to a file
+        with open(str(destdir / 'input.json'), 'w') as f:
+            data = {"project" : project, "task" : task, "task_name" : taskname, "asset": asset}
+            json.dump(data, f)
+
+        # Create links to sample notebooks
+        pathlist = Path(srcdir).glob('**/*.py')
+        for path in pathlist:
+            os.symlink(path, destdir / path.name)
 
         utils.write_inputs(projects=[project], tasks=[task])
 
         script = ""
         if redirect == 'yes':
             #script = f'window.location.href="{fullurl}lab/tree/{filename}"'
-            return self.redirect(f"{redirected}lab/tree/{filename}")
+            return self.redirect(f"{redirected}lab/tree/{taskname}/load.py")
         else:
             #self.write(import_doc.format(FN=filename, script=script))
             return self.write(import_doc.format(FN=filename, script=""))
