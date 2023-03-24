@@ -406,6 +406,9 @@ def get_token():
             
     #Send the token request
     if not token_data:
+        if port is None:
+            return None
+
         server = f"http://localhost:{port}/tokens"
         r = requests.get(server, headers={'Content-type': 'application/json'})
 
