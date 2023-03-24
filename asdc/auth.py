@@ -424,9 +424,6 @@ def get_token():
 
         access_token = token_data['access_token']
 
-    else:
-        print('Already have a valid token')
-
     return access_token
 
 def authenticate(config=None): #, scope=""):
