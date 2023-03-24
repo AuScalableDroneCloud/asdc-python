@@ -25,6 +25,22 @@ from pathlib import Path
 from . import utils
 import subprocess
 
+#prefix = os.getenv('JUPYTERHUB_SERVICE_PREFIX')
+#user = os.getenv('JUPYTERHUB_USER')
+baseurl = os.getenv('JUPYTERHUB_URL')
+server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
+user = os.getenv('JUPYTERHUB_USER', '')
+#fullurl = f'{baseurl}/{prefix}'
+fullurl = f'/user-redirect/'
+if len(user):
+    redirected = f'/user/{user}/'
+else:
+    redirected = fullurl
+#Add named server
+if len(server):
+    fullurl = f'{fullurl}{server}/'
+    redirected = f'{redirected}{server}/'
+
 root_doc = """
 <!DOCTYPE html>
 <html lang="en">
@@ -48,9 +64,13 @@ class RootHandler(tornado.web.RequestHandler):
     def get(self):
         tokens = self.application.tokens
         if tokens:
-            self.write(root_doc.format(EXTRA="(you are authenticated with the API)"))
+            #Show ID token data
+            import jwt
+            id_jwt = tokens.get("id_token")
+            decoded = jwt.decode(id_jwt, options={"verify_signature": False}) # works in PyJWT >= v2.0
+            self.write(root_doc.format(EXTRA="You are authenticated with the API: " + str(decoded['payload'])))
         else:
-            self.write(root_doc.format(EXTRA="(you are not authenticated with the API)"))
+            self.write(root_doc.format(EXTRA=f"(you are not authenticated with the API)<br><a href='{redirected}/asdc/redirect?path=nowhere'>Authenticate</a>"))
 
 
 py_base = """# + [markdown] inputHidden=false outputHidden=false
@@ -140,22 +160,6 @@ nowhere_doc = """
 
 </html>
 """
-
-#prefix = os.getenv('JUPYTERHUB_SERVICE_PREFIX')
-#user = os.getenv('JUPYTERHUB_USER')
-baseurl = os.getenv('JUPYTERHUB_URL')
-server = os.getenv('JUPYTERHUB_SERVER_NAME', '')
-user = os.getenv('JUPYTERHUB_USER', '')
-#fullurl = f'{baseurl}/{prefix}'
-fullurl = f'/user-redirect/'
-if len(user):
-    redirected = f'/user/{user}/'
-else:
-    redirected = fullurl
-#Add named server 
-if len(server):
-    fullurl = f'{fullurl}{server}/'
-    redirected = f'{redirected}{server}/'
 
 ################################################################################################################
 #Using PKCE to avoid storing client secret
