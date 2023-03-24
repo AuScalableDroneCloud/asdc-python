@@ -13,6 +13,27 @@ import os
 from PIL import Image
 import piexif
 
+
+def is_notebook():
+    """
+    Detects if running within an interactive IPython notebook environment
+
+    Returns
+    -------
+    boolean
+        True if IPython detected and browser/notebook display capability detected
+    """
+    if 'IPython' not in sys.modules:
+        # IPython hasn't been imported, definitely not
+        return False
+    try:
+        from IPython import get_ipython
+        from IPython.display import display,Image,HTML
+    except:
+        return False
+    # check for `kernel` attribute on the IPython instance
+    return getattr(get_ipython(), 'kernel', None) is not None
+
 def resize_image(image_path, resize_to, done=None):
     """
     Provides the image_resize function from WebODM:

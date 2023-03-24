@@ -137,7 +137,7 @@ def download(url, filename=None, block_size=8192, data=None, overwrite=False, th
 
     #Progress bar
     if progress:
-        if auth.is_notebook():
+        if is_notebook():
             from tqdm.notebook import tqdm
         else:
             from tqdm import tqdm
@@ -318,7 +318,7 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
 
     #Progress bar
     if progress:
-        if auth.is_notebook():
+        if is_notebook():
             from tqdm.notebook import tqdm
         else:
             from tqdm import tqdm
@@ -724,7 +724,7 @@ def project_select(filtered=False):
     """
     Display project selection widget only
     """
-    if not auth.is_notebook():
+    if not is_notebook():
         return
     import ipywidgets as widgets
     from IPython.display import display
@@ -756,7 +756,7 @@ def task_select(filtered=False):
     """
     Display project and task selection widgets
     """
-    if not auth.is_notebook():
+    if not is_notebook():
         return
     import ipywidgets as widgets
     from IPython.display import display

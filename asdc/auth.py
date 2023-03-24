@@ -58,7 +58,7 @@ import time
 import sys
 from pathlib import Path
 import jwt
-from asdc.utils import read_inputs    #Utility functions
+from asdc.utils import read_inputs, is_notebook    #Utility functions
 
 baseurl = ''      #Base jupyterhub url
 access_token = '' #Store the received token here
@@ -380,26 +380,6 @@ def _send(mode='iframe'):
     """)
     script = temp_obj.substitute(URL=authurl, ID="auth_" + nonce, MODE=mode, PORT=port, NOW=str(int(time.time())))
     display(HTML(script))
-
-def is_notebook():
-    """
-    Detects if running within an interactive IPython notebook environment
-
-    Returns
-    -------
-    boolean
-        True if IPython detected and browser/notebook display capability detected
-    """
-    if 'IPython' not in sys.modules:
-        # IPython hasn't been imported, definitely not
-        return False
-    try:
-        from IPython import get_ipython
-        from IPython.display import display,Image,HTML
-    except:
-        return False
-    # check for `kernel` attribute on the IPython instance
-    return getattr(get_ipython(), 'kernel', None) is not None
 
 def get_token():
     """
