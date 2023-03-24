@@ -223,9 +223,6 @@ class ImportHandler(tornado.web.RequestHandler):
         asset = self.get_argument('asset', 'orthophoto.tif')
         redirect = self.get_argument('redirect', 'yes')
 
-        srcfile = Path(__file__)
-        srcdir = srcfile.parents[0]
-
         #Write input data to a file
         destdir = Path.home() / taskname
         destdir.mkdir(parents=True, exist_ok=True)
@@ -234,7 +231,9 @@ class ImportHandler(tornado.web.RequestHandler):
             json.dump(data, f)
 
         # Create links to sample notebooks
-        pathlist = Path(srcdir).glob('**/*.py')
+        srcfile = Path(__file__)
+        srcdir = srcfile.parents[0] / notebooks
+        pathlist = srcdir.glob('**/*.py')
         for path in pathlist:
             os.symlink(path, destdir / path.name)
 
