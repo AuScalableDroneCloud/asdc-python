@@ -294,6 +294,13 @@ class TokensHandler(tornado.web.RequestHandler):
     def get(self):
         logger.info("Handling tokens")
         tokens = self.application.tokens
+        if not tokens:
+            logger.error(f"Tokens are not available")
+            raise tornado.web.HTTPError(
+                status_code=404,
+                reason="Tokens are not available."
+            )
+
         #Return the token data
         import jwt
         id_jwt = tokens.get("id_token")
