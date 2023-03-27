@@ -8,10 +8,8 @@ import asdc
 import pathlib
 import os
 
-project = 27 #{PID}
-task = 'd3e1e518-cec3-4c1e-a07d-c03068a7f7be' #'{TID}'
-asdc.set_selection(project, task)
-task_name = 'unnamed'
+inputs = asdc.get_inputs()
+task_name = inputs['task_name']
 filename = 'dsm.tif'
 
 asdc.download_asset(filename)

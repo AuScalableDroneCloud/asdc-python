@@ -8,13 +8,10 @@
 import asdc
 import pathlib
 import os
-#Load the saved inputs
-with open('input.json', 'r') as f:
-    inputs = json.load(f)
-    project = inputs['project']
-    task = inputs['task']
-    asdc.set_selection(project, task)
+inputs = asdc.get_inputs()
 # -
+
+asdc.selected
 
 # ### Select from available assets list
 
@@ -34,7 +31,7 @@ options = [o for o in options if o[1] in available_assets]
 
 filesel = widgets.Dropdown(
     options=options,
-    value='{ASSET}',
+    value=inputs['asset'],
     description='Asset:',
 )
 filesel

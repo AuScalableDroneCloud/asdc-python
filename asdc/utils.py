@@ -201,3 +201,12 @@ def read_inputs():
 
     return inputs_dict
 
+def get_inputs(filename='input.json'):
+    #Load locally saved inputs
+    with open(filename, 'r') as f:
+        inputs = json.load(f)
+        project = inputs['project']
+        task = inputs['task']
+        asdc.set_selection(project, task)
+        return inputs
+
