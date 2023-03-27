@@ -9,6 +9,8 @@ import asdc
 import pathlib
 import os
 inputs = asdc.get_inputs()
+project = inputs['project']
+task = inputs['task']
 # -
 
 asdc.selected

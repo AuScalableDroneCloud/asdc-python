@@ -103,7 +103,6 @@ lv = lavavu.Viewer(axis=False, border=0, port=8080)
 def loadDEM(fn):
     import osgeo.gdal
     dataset = osgeo.gdal.Open(fn)
-    print(dataset)
     gt = dataset.GetGeoTransform()
     print(gt)
 
@@ -111,50 +110,67 @@ def loadDEM(fn):
     rows = dataset.RasterYSize
     bands = dataset.RasterCount
     driver = dataset.GetDriver().LongName
+    print(cols,rows,bands,driver)
 
     width = dataset.RasterXSize
     height = dataset.RasterYSize
     minc = [gt[0], gt[3] + width*gt[4] + height*gt[5]]
     maxc = [gt[0] + width*gt[1] + height*gt[2], gt[3]]
-    print(minc)
-    print(maxc)
+    print("Corners:", minc,maxc)
 
-    #myarray = dataset.GetRasterBand(1).ReadAsArray()
-    zrange = [-1,1]
+    #Calc subsampling
+    SS = 1
+    lim = 10000000
+    if cols*rows > lim:
+        SS = cols*rows // lim
+        print(f"Subsampling by a factor of {SS}")
+
     def createvertexarray(raster, invalid):
-        transform = raster.GetGeoTransform()
-        width = raster.RasterXSize
-        height = raster.RasterYSize
-        x = numpy.arange(0, width) * transform[1] + transform[0] - minc[0]
-        y = numpy.arange(0, height) * transform[5] + transform[3] - minc[1]
-        xx, yy = numpy.meshgrid(x, y)
-        xx = xx.astype('float32')
-        yy = yy.astype('float32')
+        #Read height
         zz = raster.ReadAsArray()
+        #Subsample
+        print(zz.shape)
+        zz = zz[::SS,::SS]
+        print(zz.shape)
         #Clear zeros/nulls
         zz[zz <= -9000] = None
         zz[zz == 0] = None
+
         zrange = [numpy.nanmin(zz),numpy.nanmax(zz)]
         print("Zmin/max",zrange)
-        vertices = numpy.vstack((xx,yy,zz)).reshape([3, -1]).transpose()
+
+        transform = raster.GetGeoTransform()
+        width = zz.shape[1]
+        height = zz.shape[0]
+        x = numpy.arange(0, width) * SS * transform[1] + transform[0] - minc[0]
+        y = numpy.arange(0, height) * SS * transform[5] + transform[3] - minc[1]
+        xx, yy = numpy.meshgrid(x, y)
+        xx = xx.astype('float32')
+        yy = yy.astype('float32')
+
+        vertices = numpy.vstack((xx,yy,zz)).reshape([3, -1]).transpose().reshape((zz.shape[1], zz.shape[0], 3))
+        print(vertices.shape)
         return vertices, zrange
 
     vertices, zrange = createvertexarray(dataset, invalid=0)
 
+    #Post-process data into float range and remove invalid values
     print("Plotting...")
-    grid = lv.triangles(vertexnormals=False, colour="white", range=zrange)
-    grid["dims"]=[cols,rows] #dims #[cols/subsample., rows/subsample]
+    grid = lv.triangles(colour="white") #vertexnormals=False,
+    grid["dims"]= [vertices.shape[0], vertices.shape[1]] #[cols,rows] #dims #[cols/subsample., rows/subsample]
     grid.vertices(vertices)
-    
-    #Plot height values with colourmap
-    height = vertices[:, 2].ravel()
+    #Load z coord height as scalar field
+    height = vertices[:,:, 2]
     grid.values(height, "height")
-    cm = grid.colourmap("elevation", reverse=True)
-    grid.colourbar()
-    
-dem = loadDEM(filename)
 
-lv.rotation(-45,0,0)
+    #Calculate range from height values
+    h = max(abs(zrange[0]), abs(zrange[1]))
+    grid.colourmap("geo", range=[-h,h])
+    grid.colourbar()
+
+    return grid
+
+dem = loadDEM(filename)
 # -
 
 lv.display()
