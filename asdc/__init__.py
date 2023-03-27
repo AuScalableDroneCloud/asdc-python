@@ -825,6 +825,24 @@ def get_selection(project=None, task=None, exception=True):
     #Return the first selection
     return init_p, init_t
 
+def get_inputs(filename='input.json'):
+    """
+    Load selected project/task from a previously saved .json file
+
+    Parameters
+    ----------
+    filename: str
+        Path of the input file, default is 'input.json' in current directory
+
+    """
+    #Load locally saved inputs
+    with open(filename, 'r') as f:
+        inputs = json.load(f)
+        project = inputs['project']
+        task = inputs['task']
+        set_selection(project, task)
+        return inputs
+
 def new_task(name, project=None, options=None):
     """
     Create a new task, "partial" enabled to allow later upload of images
