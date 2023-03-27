@@ -3,6 +3,8 @@
 #
 # Based on:
 # https://www.earthdatascience.org/courses/use-data-open-source-python/intro-raster-data-python/fundamentals-raster-data/open-lidar-raster-python/
+#
+# Requires: earthpy `!pip install earthpy`
 # + inputHidden=false outputHidden=false
 import asdc
 import pathlib
@@ -14,8 +16,6 @@ filename = 'dsm.tif'
 
 asdc.download_asset(filename)
 # -
-
-# !pip install earthpy
 
 import earthpy as et
 import earthpy.plot as ep
@@ -176,5 +176,3 @@ dem = loadDEM(filename)
 lv.display()
 
 lv.window()
-
-

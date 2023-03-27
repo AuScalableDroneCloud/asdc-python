@@ -57,13 +57,9 @@ if '.tif' in filename or '.png' in filename or '.jpg' in filename:
     display(im)
 # -
 
-# ### More examples of visualisation and processing...
-
-if filename == 'dsm.tif':
-    display(HTML('<a href="dsm.py">Load DSM</a>'))
-elif filename == 'georeferenced_model.laz':
-    display(HTML('<a href="points.py">Load Point Cloud</a>'))
-elif filename == 'textured_model.zip' or filename == 'textured_model.glb':
-    display(HTML('<a href="model.py">Load Textured Model</a>'))
-
-
+# ### Example notebooks for visualisation and processing of asset data...
+#
+# - [Load DSM](dsm.py)
+# - [Load Point Cloud](points.py)
+# - [Load Textured Model](model.py)
+#
