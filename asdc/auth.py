@@ -402,8 +402,7 @@ def get_token():
         #Expired token?
         if dt <= now:
             token_data = None
-            return True
-            
+
     #Send the token request
     if not token_data:
         if port is None:
