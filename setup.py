@@ -7,7 +7,10 @@ setuptools.setup(
     author='Owen Kaluza',
     author_email='owen.kaluza@monash.edu',
     description='ASDC Utils including OAuth2 for Jupyter/lab/hub',
-    packages=setuptools.find_packages(),
+    packages=["asdc", "asdc/notebooks"],
+    package_dir={
+        "": ".",
+        "asdc/noteboooks": "./asdc/notebooks",},
     install_requires=['jupyter-server-proxy', 'pillow', 'qrcode','tqdm', 'python-dotenv', 'python-slugify', 'requests-toolbelt', 'piexif', 'pyjwt', 'authlib', 'browser_cookie3'],
     entry_points={
         'jupyter_serverproxy_servers': [
