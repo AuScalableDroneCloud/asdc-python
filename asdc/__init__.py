@@ -345,7 +345,7 @@ def upload(url, filepath, dest=None, block_size=8192, progress=True, throw=False
             headers = {'Content-Type': data.content_type}
             if not auth.cookies:
                 access_token = auth.get_token()
-                headersAPI['Authorization'] = prefix + ' ' + access_token
+                headers['Authorization'] = prefix + ' ' + access_token
             return requests.post(url, data=data, headers=headers, cookies=auth.cookies)
 
     if progress:
