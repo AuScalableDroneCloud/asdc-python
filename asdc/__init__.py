@@ -736,6 +736,7 @@ def project_select(filtered=False):
     def select_project(project):
         global selected
         selected["project"] = projectW.value
+        selected["task"] = None
         if project:
             baseurl = settings['api_audience'] 
             print(f"{baseurl}/projects/{selected['project']}/")
