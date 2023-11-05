@@ -820,7 +820,7 @@ def get_selection(project=None, task=None, exception=True):
     #Use the first selection passed in env, or interactively select if none
     if not init_p or not init_t:
         if not exception:
-            return None, None
+            return init_p, init_t
         raise(SystemExit("Please select a task to continue..."))
 
     #Return the first selection
@@ -866,7 +866,7 @@ def new_task(name, project=None, options=None):
     """
 
     #Use the default selections unless arg passed
-    project, task = get_selection(project)
+    project, task = get_selection(project, exception=False)
 
     # https://github.com/localdevices/odk2odm/blob/main/odk2odm/odm_requests.py
     if options is None:
